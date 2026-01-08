@@ -103,3 +103,23 @@ yarn test
 ```
 
 **This is not an officially supported Google product**
+..
+
+## New README (work in progress)
+
+This repository's README will be rewritten. Start of the new README below — it will be expanded later.
+
+Yarn usage (project is pinned to Yarn 4.12.0):
+
+Installation:
+
+```sh
+yarn install
+```
+
+Run tests:
+
+```sh
+yarn test
+```
+
