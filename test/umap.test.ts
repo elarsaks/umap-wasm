@@ -115,7 +115,7 @@ describe('UMAP', () => {
     spyOn<any>(umap, 'nearestNeighbors');
     umap.fit(testData);
 
-    expect(umap['nearestNeighbors']).toBeCalledTimes(0);
+    expect(umap['nearestNeighbors']).toHaveBeenCalledTimes(0);
   });
 
   test('supervised projection', () => {
