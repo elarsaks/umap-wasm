@@ -16,7 +16,8 @@
   "scripts": {
     "test": "jest",
     "bundle": "rm -rf lib && webpack --config ./webpack/lib.config.ts && webpack --config ./webpack/lib.min.config.ts",
-    "build": "rm -rf dist && tsc && yarn bundle"
+    "build": "rm -rf dist && tsc && yarn bundle",
+    "build:wasm": "cd wasm && wasm-pack build --target web --out-dir pkg"
   },
   "devDependencies": {
     "@types/jest": "^30.0.0",

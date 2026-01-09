@@ -123,6 +123,17 @@ Run tests:
 yarn test
 ```
 
+### Rust + WebAssembly core (experimental)
+
+This repository now includes an experimental Rust core compiled to WebAssembly in the `wasm/` subdirectory.
+
+Build the WASM package (requires Rust, the `wasm32-unknown-unknown` target, and `wasm-pack`):
+
+```sh
+yarn build:wasm
+```
+
+This will run `wasm-pack build` in `wasm/` and output artifacts into `wasm/pkg/`, which can be wired into the JavaScript build.
 #### Deterministic Results
 
 UMAP is a stochastic algorithm, but you can achieve deterministic results by providing a seeded pseudo-random number generator via the `random` parameter. The tests use [Prando](https://www.npmjs.com/package/prando) for this purpose:
