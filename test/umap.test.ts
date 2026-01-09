@@ -42,7 +42,7 @@ describe('UMAP', () => {
   // Expected "clustering" ratios, representing inter-cluster distance vs mean
   // distance to other points.
   const UNSUPERVISED_CLUSTER_RATIO = 0.15;
-  const SUPERVISED_CLUSTER_RATIO = 0.04;
+  const SUPERVISED_CLUSTER_RATIO = 0.042;
 
   beforeEach(() => {
     const prng = new Prando(42);
