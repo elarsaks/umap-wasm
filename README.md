@@ -123,3 +123,15 @@ Run tests:
 yarn test
 ```
 
+### Rust + WebAssembly core (experimental)
+
+This repository now includes an experimental Rust core compiled to WebAssembly in the `wasm/` subdirectory.
+
+Build the WASM package (requires Rust, the `wasm32-unknown-unknown` target, and `wasm-pack`):
+
+```sh
+yarn build:wasm
+```
+
+This will run `wasm-pack build` in `wasm/` and output artifacts into `wasm/pkg/`, which can be wired into the JavaScript build.
+
