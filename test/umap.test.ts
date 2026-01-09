@@ -112,7 +112,7 @@ describe('UMAP', () => {
 
     const umap = new UMAP({ random });
     umap.setPrecomputedKNN(knnIndices, knnDistances);
-    spyOn<any>(umap, 'nearestNeighbors');
+    jest.spyOn(umap as any, 'nearestNeighbors');
     umap.fit(testData);
 
     expect(umap['nearestNeighbors']).toHaveBeenCalledTimes(0);
