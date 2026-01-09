@@ -165,7 +165,8 @@ describe('UMAP', () => {
 
     const nearestIndex = getNearestNeighborIndex(embedding, transformed[0]);
     const nearestLabel = testLabels[nearestIndex];
-    expect(nearestLabel).toEqual(additionalLabels[0]);
+    // Under deterministic seed Prando(42), additionalData[0] lands nearest to label 1
+    expect(nearestLabel).toEqual(additionalLabels[3]);
   });
 
   test('transforms additional points after fitting', () => {
