@@ -2,7 +2,21 @@
 
 # UMAP-JS
 
-This is a JavaScript reimplementation of UMAP from the python implementation found at https://github.com/lmcinnes/umap.
+This fork is part of the master’s thesis:
+
+> WebAssembly-Accelerated UMAP for Browser Environment – Elar Saks, TAMK, 2026
+
+It evaluates selectively rewriting performance‑critical parts of UMAP in Rust and compiling them to WebAssembly (WASM) for faster browser execution, while keeping the JavaScript API.
+
+## Attribution
+
+This project is a fork of the upstream `umap-js` library from PAIR-code (Google), which is a JavaScript reimplementation of the original Python UMAP reference implementation by McInnes et al.
+
+- Upstream JS project: https://github.com/PAIR-code/umap-js
+- Original Python implementation: https://github.com/lmcinnes/umap
+- Paper: McInnes, Healy & Melville (2018), “UMAP: Uniform Manifold Approximation and Projection for Dimension Reduction”
+
+The thesis work builds on top of the upstream implementation and focuses on adding an optional Rust+WASM execution path for selected hot spots; credit for the baseline algorithm implementation belongs to the original authors and upstream maintainers.
 
 Uniform Manifold Approximation and Projection (UMAP) is a dimension reduction technique that can be used for visualisation similarly to t-SNE, but also for general non-linear dimension reduction.
 
@@ -11,15 +25,15 @@ There are a few important differences between the python implementation and the 
 - The optimization step is seeded with a random embedding rather than a spectral embedding. This gives comparable results for smaller datasets. The spectral embedding computation relies on efficient eigenvalue / eigenvector computations that are not easily done in JS.
 - There is no specialized functionality for angular distances or sparse data representations.
 
-### Usage
+## Consume (library usage)
 
-#### Installation
+Install from npm:
 
 ```sh
 yarn add umap-js
 ```
 
-#### Synchronous fitting
+Synchronous fitting:
 
 ```javascript
 import { UMAP } from 'umap-js';
@@ -28,7 +42,7 @@ const umap = new UMAP();
 const embedding = umap.fit(data);
 ```
 
-#### Asynchronous fitting
+Asynchronous fitting:
 
 ```javascript
 import { UMAP } from 'umap-js';
@@ -39,7 +53,7 @@ const embedding = await umap.fitAsync(data, epochNumber => {
 });
 ```
 
-#### Step-by-step fitting
+Step-by-step fitting:
 
 ```javascript
 import { UMAP } from 'umap-js';
@@ -52,7 +66,7 @@ for (let i = 0; i < nEpochs; i++) {
 const embedding = umap.getEmbedding();
 ```
 
-#### Supervised projection using labels
+Supervised projection using labels:
 
 ```javascript
 import { UMAP } from 'umap-js';
@@ -62,7 +76,7 @@ umap.setSupervisedProjection(labels);
 const embedding = umap.fit(data);
 ```
 
-#### Transforming additional points after fitting
+Transforming additional points after fitting:
 
 ```javascript
 import { UMAP } from 'umap-js';
@@ -72,7 +86,7 @@ umap.fit(data);
 const transformed = umap.transform(additionalData);
 ```
 
-#### Parameters
+Common parameters:
 
 The UMAP constructor can accept a number of hyperparameters via a `UMAPParameters` object, with the most common described below. See [umap.ts](./src/umap.ts) for more details.
 
@@ -94,24 +108,11 @@ const umap = new UMAP({
 });
 ```
 
-### Testing
+## Develop (this repo)
 
-`umap-js` uses [`jest`](https://jestjs.io/) for testing.
+This project is pinned to Yarn 4.12.0.
 
-```
-yarn test
-```
-
-**This is not an officially supported Google product**
-..
-
-## New README (work in progress)
-
-This repository's README will be rewritten. Start of the new README below — it will be expanded later.
-
-Yarn usage (project is pinned to Yarn 4.12.0):
-
-Installation:
+Install dependencies:
 
 ```sh
 yarn install
@@ -123,30 +124,25 @@ Run tests:
 yarn test
 ```
 
-### Rust + WebAssembly core (experimental)
+Build TypeScript + bundle:
 
-This repository now includes an experimental Rust core compiled to WebAssembly in the `wasm/` subdirectory.
+```sh
+yarn build
+```
 
-Build the WASM package (requires Rust, the `wasm32-unknown-unknown` target, and `wasm-pack`):
+### WASM (experimental)
+
+The Rust core lives in `wasm/` and is compiled to WebAssembly using `wasm-pack`.
+
+Requirements:
+
+- Rust toolchain with the `wasm32-unknown-unknown` target installed.
+- `wasm-pack` available on `PATH`.
+
+Build the WASM package:
 
 ```sh
 yarn build:wasm
 ```
 
-This will run `wasm-pack build` in `wasm/` and output artifacts into `wasm/pkg/`, which can be wired into the JavaScript build.
-#### Deterministic Results
-
-UMAP is a stochastic algorithm, but you can achieve deterministic results by providing a seeded pseudo-random number generator via the `random` parameter. The tests use [Prando](https://www.npmjs.com/package/prando) for this purpose:
-
-```typescript
-import { UMAP } from 'umap-js';
-import Prando from 'prando';
-
-const umap = new UMAP({
-  random: new Prando(42).next,  // Seeded PRNG for reproducible results
-});
-const embedding = umap.fit(data);
-```
-
-This ensures that running the same code with the same seed will produce identical embeddings.
-
+This runs `wasm-pack build` in `wasm/` and writes artifacts to `wasm/pkg/`.
