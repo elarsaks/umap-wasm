@@ -123,3 +123,19 @@ Run tests:
 yarn test
 ```
 
+#### Deterministic Results
+
+UMAP is a stochastic algorithm, but you can achieve deterministic results by providing a seeded pseudo-random number generator via the `random` parameter. The tests use [Prando](https://www.npmjs.com/package/prando) for this purpose:
+
+```typescript
+import { UMAP } from 'umap-js';
+import Prando from 'prando';
+
+const umap = new UMAP({
+  random: new Prando(42).next,  // Seeded PRNG for reproducible results
+});
+const embedding = umap.fit(data);
+```
+
+This ensures that running the same code with the same seed will produce identical embeddings.
+
