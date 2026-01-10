@@ -6,49 +6,10 @@ export async function initWasm() {
   
   wasmReady = (async () => {
     try {
-      // TODO: Use only one way, lets get rid of the others later
-      // Try multiple strategies to load the WASM module to handle different runtime contexts
-      let mod: any;
-      let lastError: any = null;
-      
-      // Strategy 1: Try CommonJS require with absolute paths (works in Node/Jest)
-      // Use an evaluated require to avoid webpack statically bundling `path`/`fs`.
-      try {
-        // eslint-disable-next-line no-eval
-        const maybeRequire = eval("typeof __non_webpack_require__ !== 'undefined' ? __non_webpack_require__ : (typeof require !== 'undefined' ? require : undefined)");
-        if (maybeRequire) {
-          try {
-            const pathModule = maybeRequire('path');
-            const fsModule = maybeRequire('fs');
-            const candidates = [
-              pathModule.resolve(process.cwd(), 'wasm/pkg/umap_wasm_core.js'),
-              pathModule.resolve(__dirname, '../wasm/pkg/umap_wasm_core.js'),
-              pathModule.resolve(__dirname, '../../wasm/pkg/umap_wasm_core.js'),
-              // When running from dist/src/, need to go up more levels
-              pathModule.resolve(__dirname, '../../../wasm/pkg/umap_wasm_core.js'),
-            ];
-
-            for (const candidate of candidates) {
-              try {
-                if (fsModule.existsSync(candidate)) {
-                  mod = maybeRequire(candidate);
-                  wasmModule = mod;
-                  return mod;
-                }
-              } catch (e) {
-                // Try next candidate
-              }
-            }
-          } catch (e) {
-            // ignore and fall through to dynamic import
-            lastError = e;
-          }
-        }
-      } catch (e) {
-        lastError = e;
-      }
-      
-      throw new Error('Could not load WASM module via CommonJS require');
+      // eslint-disable-next-line @typescript-eslint/no-var-requires
+      const mod = require('../wasm/pkg/umap_wasm_core.js');
+      wasmModule = mod;
+      return mod;
     } catch (err) {
       wasmReady = null;
       wasmModule = null;
