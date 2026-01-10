@@ -568,7 +568,7 @@ export class UMAP {
           farDist
         );
       }
-      // TODO (andycoenen@): add non-categorical supervised embeddings.
+      // Note: supervised embeddings for categorical labels can be added later.
     }
   }
 
@@ -708,7 +708,7 @@ export class UMAP {
       let hi = Infinity;
       let mid = 1.0;
 
-      // TODO: This is very inefficient, but will do for now. FIXME
+      // Note: this search is not optimized for performance.
       const ithDistances = distances[i];
       const nonZeroDists = ithDistances.filter(d => d > 0.0);
 

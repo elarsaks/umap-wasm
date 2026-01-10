@@ -25,4 +25,8 @@ export default {
     globalObject: 'this'
   },
   optimization: { minimize: false },
+  externals: {
+    // Exclude WASM module from bundling - loaded at runtime
+    '../wasm/pkg/umap_wasm_core.js': 'commonjs ../wasm/pkg/umap_wasm_core.js',
+  },
 };

@@ -59,6 +59,7 @@
 
 import * as utils from './utils';
 import { RandomFn, Vector, Vectors } from './umap';
+import { isWasmAvailable, buildRpTreeWasm, searchFlatTreeWasm, wasmTreeToJs, WasmFlatTree } from './wasmBridge';
 
 /**
  * Tree functionality for approximating nearest neighbors
@@ -73,12 +74,47 @@ interface RandomProjectionTreeNode {
 }
 
 export class FlatTree {
+  // Store a reference to WASM tree if available
+  private wasmTree?: WasmFlatTree;
+
   constructor(
     public hyperplanes: number[][],
     public offsets: number[],
     public children: number[][],
     public indices: number[][]
   ) {}
+
+  /**
+   * Create a FlatTree from a WASM tree object
+   */
+  static fromWasm(wasmTree: WasmFlatTree): FlatTree {
+    const jsData = wasmTreeToJs(wasmTree);
+    const tree = new FlatTree(
+      jsData.hyperplanes,
+      jsData.offsets,
+      jsData.children,
+      jsData.indices
+    );
+    tree.wasmTree = wasmTree;
+    return tree;
+  }
+
+  /**
+   * Get the underlying WASM tree if available
+   */
+  getWasmTree(): WasmFlatTree | undefined {
+    return this.wasmTree;
+  }
+
+  /**
+   * Clean up WASM resources
+   */
+  dispose(): void {
+    if (this.wasmTree) {
+      this.wasmTree.free();
+      this.wasmTree = undefined;
+    }
+  }
 }
 
 /**
@@ -88,14 +124,48 @@ export function makeForest(
   data: Vectors,
   nNeighbors: number,
   nTrees: number,
-  random: RandomFn
+  random: RandomFn,
+  useWasm = false
 ) {
   const leafSize = Math.max(10, nNeighbors);
 
+  // Use WASM implementation if available and requested
+  if (useWasm) {
+    if (!isWasmAvailable()) {
+      throw new Error('WASM requested but not available');
+    }
+    return makeForestWasm(data, leafSize, nTrees, random);
+  }
+
+  // JavaScript implementation when WASM is not requested
   const trees = utils
     .range(nTrees)
     .map((_, i) => makeTree(data, leafSize, i, random));
   const forest = trees.map(tree => flattenTree(tree, leafSize));
+
+  return forest;
+}
+
+/**
+ * Build a random projection forest using WASM.
+ */
+function makeForestWasm(
+  data: Vectors,
+  leafSize: number,
+  nTrees: number,
+  random: RandomFn
+): FlatTree[] {
+  const nSamples = data.length;
+  const dim = data[0].length;
+  const forest: FlatTree[] = [];
+
+  for (let i = 0; i < nTrees; i++) {
+    // Generate a seed from the random function
+    const seed = Math.floor(random() * 0xFFFFFFFF);
+    
+    const wasmTree = buildRpTreeWasm(data, nSamples, dim, leafSize, seed);
+    forest.push(FlatTree.fromWasm(wasmTree));
+  }
 
   return forest;
 }
@@ -239,7 +309,6 @@ function flattenTree(tree: RandomProjectionTreeNode, leafSize: number) {
   const nNodes = numNodes(tree);
   const nLeaves = numLeaves(tree);
 
-  // TODO: Verify that sparse code is not relevant...
   const hyperplanes = utils
     .range(nNodes)
     .map(() => utils.zeros(tree.hyperplane ? tree.hyperplane.length : 0));
@@ -265,8 +334,7 @@ function recursiveFlatten(
   if (tree.isLeaf) {
     children[nodeNum][0] = -leafNum;
 
-    // TODO: Triple check this operation corresponds to
-    // indices[leafNum : tree.indices.shape[0]] = tree.indices
+    // copy leaf indices into the leaf slot
     indices[leafNum].splice(0, tree.indices!.length, ...tree.indices!);
     leafNum += 1;
     return { nodeNum, leafNum };
@@ -372,6 +440,14 @@ export function searchFlatTree(
   tree: FlatTree,
   random: RandomFn
 ) {
+  // Use WASM implementation if available
+  const wasmTree = tree.getWasmTree();
+  if (wasmTree && isWasmAvailable()) {
+    const seed = Math.floor(random() * 0xFFFFFFFF);
+    return searchFlatTreeWasm(wasmTree, point, seed);
+  }
+
+  // JavaScript implementation when WASM tree is not available
   let node = 0;
   while (tree.children[node][0] > 0) {
     const side = selectSide(
