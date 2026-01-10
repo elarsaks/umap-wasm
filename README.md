@@ -27,11 +27,11 @@ The thesis investigates hybrid JavaScript/WebAssembly architectures for scientif
 Uniform Manifold Approximation and Projection (UMAP) is a dimension reduction technique used for visualization and general non-linear dimension reduction, offering advantages over t-SNE in speed and preservation of global structure.
 
 This implementation builds upon the PAIR-code `umap-js` library with strategic WebAssembly optimizations for:
-- Distance computations
-- Nearest neighbor search operations  
-- Matrix operations in optimization loops
-- Nearest‑neighbour search (NN‑Descent) *(TODO)*
-- Gradient‑descent layout optimisation *(TODO)*
+- Distance computations (implemented in Rust: `distances.rs`)
+- Nearest neighbour search (random projection trees) (implemented in Rust: `tree.rs`)
+- Matrix operations in optimization loops (implemented in Rust: `matrix.rs`)
+- Nearest‑neighbour graph refinement (NN‑Descent) *(TODO — JS implementation currently used)*
+- Gradient‑descent layout optimisation *(TODO — optimizer currently runs in JS)*
 
 ### Key Features
 
@@ -172,11 +172,11 @@ The project exposes configuration flags to selectively enable WASM-accelerated c
 
 | Component | Config Flag | Status | Notes |
 |-----------|-------------|--------|-------|
-| Distance computations | `useWasmDistance` | Implemented | WASM provides `euclidean` and `cosine` implementations (via `wasmBridge`). |
-| Nearest neighbour search operations | `useWasmTree` | Implemented | WASM-accelerated random projection tree construction is available and can be enabled with `useWasmTree`. |
-| Matrix operations in optimization loops | `useWasmMatrix` | Implemented | Sparse-matrix operations (transpose, element-wise ops, CSR conversion, normalization) are implemented in WASM. |
-| Nearest‑neighbour search (NN‑Descent) | — | TODO | NN‑Descent core still uses the JS implementation; WASM integration for the NN‑Descent algorithm is planned. |
-| Gradient‑descent layout optimisation | — | TODO | The optimization loop runs in JS; a WASM-accelerated optimizer is under investigation. |
+| Distance computations | `useWasmDistance` | Implemented | WASM provides `euclidean` and `cosine` implementations (via `wasmBridge`). These are implemented in `distances.rs`.
+| Nearest neighbour search (random projection trees) | `useWasmTree` | Implemented | WASM-accelerated random projection tree construction is available and can be enabled with `useWasmTree` (see `tree.rs`).
+| Matrix operations in optimization loops | `useWasmMatrix` | Implemented | Sparse-matrix operations (transpose, element-wise ops, CSR conversion, normalization) are implemented in WASM (see `matrix.rs`).
+| Nearest‑neighbour graph refinement (NN‑Descent) | — | TODO | NN‑Descent (graph refinement / approximate nearest neighbours) currently uses the JS implementation; WASM integration is planned.
+| Gradient‑descent layout optimisation | — | TODO | The optimization loop runs in JS; a WASM-accelerated optimizer is under investigation.
 
 
 ### Example with Custom Parameters

@@ -239,6 +239,10 @@ export class UMAP {
   private distanceFn: DistanceFn = euclidean;
   /** Use wasm distance functions when available and enabled via params */
   private useWasmDistance = false;
+  /** Use wasm sparse-matrix operations when available and enabled via params */
+  private useWasmMatrix = false;
+  /** Use wasm tree construction when available and enabled via params */
+  private useWasmTree = false;
 
   // KNN state (can be precomputed and supplied via initializeFit)
   private knnIndices?: number[][];
@@ -268,6 +272,8 @@ export class UMAP {
 
     setParam('distanceFn');
     setParam('useWasmDistance');
+    setParam('useWasmMatrix');
+    setParam('useWasmTree');
     setParam('learningRate');
     setParam('localConnectivity');
     setParam('minDist');
@@ -609,7 +615,7 @@ export class UMAP {
     const nTrees = 5 + Math.floor(round(X.length ** 0.5 / 20.0));
     const nIters = Math.max(5, Math.floor(Math.round(log2(X.length))));
 
-    this.rpForest = tree.makeForest(X, nNeighbors, nTrees, this.random);
+    this.rpForest = tree.makeForest(X, nNeighbors, nTrees, this.random, this.useWasmTree);
 
     const leafArray = tree.makeLeafArray(this.rpForest);
     const { indices, weights } = metricNNDescent(
@@ -650,6 +656,50 @@ export class UMAP {
     );
 
     const size = [X.length, X.length];
+
+    // If wasm sparse-matrix ops are enabled and available, use them
+    if (this.useWasmMatrix && wasmBridge.isWasmAvailable()) {
+      const wasmMat = wasmBridge.createSparseMatrixWasm(rows, cols, vals, size[0], size[1]);
+      const transpose = wasmBridge.sparseTransposeWasm(wasmMat);
+      const prodMatrix = wasmBridge.sparsePairwiseMultiplyWasm(wasmMat, transpose);
+
+      const added = wasmBridge.sparseAddWasm(wasmMat, transpose);
+      const a = wasmBridge.sparseSubtractWasm(added, prodMatrix);
+      const b = wasmBridge.sparseMultiplyScalarWasm(a, setOpMixRatio);
+      const c = wasmBridge.sparseMultiplyScalarWasm(prodMatrix, 1.0 - setOpMixRatio);
+      const resultWasm = wasmBridge.sparseAddWasm(b, c);
+
+      // Convert back to JS SparseMatrix for downstream code that expects it
+      const entries = wasmBridge.wasmSparseMatrixGetAll(resultWasm);
+      const jsRows = entries.map(e => e.row);
+      const jsCols = entries.map(e => e.col);
+      const jsVals = entries.map(e => e.value);
+      return new matrix.SparseMatrix(jsRows, jsCols, jsVals, size);
+    }
+
+    // Fallback to pure JS implementations
+
+    // If wasm sparse-matrix ops are enabled and available, use them
+    if (this.useWasmMatrix && wasmBridge.isWasmAvailable()) {
+      const wasmMat = wasmBridge.createSparseMatrixWasm(rows, cols, vals, size[0], size[1]);
+      const transpose = wasmBridge.sparseTransposeWasm(wasmMat);
+      const prodMatrix = wasmBridge.sparsePairwiseMultiplyWasm(wasmMat, transpose);
+
+      const added = wasmBridge.sparseAddWasm(wasmMat, transpose);
+      const a = wasmBridge.sparseSubtractWasm(added, prodMatrix);
+      const b = wasmBridge.sparseMultiplyScalarWasm(a, setOpMixRatio);
+      const c = wasmBridge.sparseMultiplyScalarWasm(prodMatrix, 1.0 - setOpMixRatio);
+      const resultWasm = wasmBridge.sparseAddWasm(b, c);
+
+      // Convert back to JS SparseMatrix for downstream code that expects it
+      const entries = wasmBridge.wasmSparseMatrixGetAll(resultWasm);
+      const jsRows = entries.map(e => e.row);
+      const jsCols = entries.map(e => e.col);
+      const jsVals = entries.map(e => e.value);
+      return new matrix.SparseMatrix(jsRows, jsCols, jsVals, size);
+    }
+
+    // Fallback to pure JS implementations
     const sparseMatrix = new matrix.SparseMatrix(rows, cols, vals, size);
 
     const transpose = matrix.transpose(sparseMatrix);
