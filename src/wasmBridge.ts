@@ -6,6 +6,7 @@ export async function initWasm() {
   
   wasmReady = (async () => {
     try {
+      // TODO: Use only one way, lets get rid of the others later
       // Try multiple strategies to load the WASM module to handle different runtime contexts
       let mod: any;
       let lastError: any = null;
@@ -196,4 +197,178 @@ export function wasmTreeToJs(wasmTree: WasmFlatTree) {
     children,
     indices,
   };
+}
+
+// ============================================================================
+// Sparse Matrix WASM Functions
+// ============================================================================
+
+export interface WasmSparseMatrix {
+  n_rows: number;
+  n_cols: number;
+  set(row: number, col: number, value: number): void;
+  get(row: number, col: number, defaultValue: number): number;
+  get_dims(): number[];
+  get_rows(): Int32Array;
+  get_cols(): Int32Array;
+  get_values(): Float64Array;
+  get_all_ordered(): Float64Array;
+  nnz(): number;
+  to_array(): Float64Array;
+  map_scalar(operation: string, scalar: number): WasmSparseMatrix;
+  free(): void;
+}
+
+/**
+ * Create a WASM sparse matrix.
+ * 
+ * @param rows - Row indices
+ * @param cols - Column indices
+ * @param values - Values at each (row, col)
+ * @param nRows - Number of rows in the matrix
+ * @param nCols - Number of columns in the matrix
+ * @returns A WASM SparseMatrix object
+ */
+export function createSparseMatrixWasm(
+  rows: number[],
+  cols: number[],
+  values: number[],
+  nRows: number,
+  nCols: number
+): WasmSparseMatrix {
+  if (!wasmModule) throw new Error('WASM module not initialized');
+  
+  const rowsArray = new Int32Array(rows);
+  const colsArray = new Int32Array(cols);
+  const valuesArray = new Float64Array(values);
+  
+  return new wasmModule.WasmSparseMatrix(rowsArray, colsArray, valuesArray, nRows, nCols);
+}
+
+/**
+ * Transpose a WASM sparse matrix.
+ */
+export function sparseTransposeWasm(matrix: WasmSparseMatrix): WasmSparseMatrix {
+  if (!wasmModule) throw new Error('WASM module not initialized');
+  return wasmModule.sparse_transpose(matrix);
+}
+
+/**
+ * Create a sparse identity matrix.
+ */
+export function sparseIdentityWasm(size: number): WasmSparseMatrix {
+  if (!wasmModule) throw new Error('WASM module not initialized');
+  return wasmModule.sparse_identity(size);
+}
+
+/**
+ * Element-wise addition of two sparse matrices.
+ */
+export function sparseAddWasm(a: WasmSparseMatrix, b: WasmSparseMatrix): WasmSparseMatrix {
+  if (!wasmModule) throw new Error('WASM module not initialized');
+  return wasmModule.sparse_add(a, b);
+}
+
+/**
+ * Element-wise subtraction of two sparse matrices.
+ */
+export function sparseSubtractWasm(a: WasmSparseMatrix, b: WasmSparseMatrix): WasmSparseMatrix {
+  if (!wasmModule) throw new Error('WASM module not initialized');
+  return wasmModule.sparse_subtract(a, b);
+}
+
+/**
+ * Element-wise multiplication of two sparse matrices.
+ */
+export function sparsePairwiseMultiplyWasm(a: WasmSparseMatrix, b: WasmSparseMatrix): WasmSparseMatrix {
+  if (!wasmModule) throw new Error('WASM module not initialized');
+  return wasmModule.sparse_pairwise_multiply(a, b);
+}
+
+/**
+ * Element-wise maximum of two sparse matrices.
+ */
+export function sparseMaximumWasm(a: WasmSparseMatrix, b: WasmSparseMatrix): WasmSparseMatrix {
+  if (!wasmModule) throw new Error('WASM module not initialized');
+  return wasmModule.sparse_maximum(a, b);
+}
+
+/**
+ * Scalar multiplication of a sparse matrix.
+ */
+export function sparseMultiplyScalarWasm(matrix: WasmSparseMatrix, scalar: number): WasmSparseMatrix {
+  if (!wasmModule) throw new Error('WASM module not initialized');
+  return wasmModule.sparse_multiply_scalar(matrix, scalar);
+}
+
+/**
+ * Remove zero entries from a sparse matrix.
+ */
+export function sparseEliminateZerosWasm(matrix: WasmSparseMatrix): WasmSparseMatrix {
+  if (!wasmModule) throw new Error('WASM module not initialized');
+  return wasmModule.sparse_eliminate_zeros(matrix);
+}
+
+/**
+ * Normalize a sparse matrix.
+ * @param matrix - The sparse matrix to normalize
+ * @param normType - 'max', 'l1', or 'l2'
+ */
+export function sparseNormalizeWasm(matrix: WasmSparseMatrix, normType: string = 'l2'): WasmSparseMatrix {
+  if (!wasmModule) throw new Error('WASM module not initialized');
+  return wasmModule.sparse_normalize(matrix, normType);
+}
+
+/**
+ * Get CSR representation of a sparse matrix.
+ * @returns Object with indices, values, and indptr arrays
+ */
+export function sparseGetCSRWasm(matrix: WasmSparseMatrix): { indices: number[]; values: number[]; indptr: number[] } {
+  if (!wasmModule) throw new Error('WASM module not initialized');
+  
+  const result: number[] = Array.from(wasmModule.sparse_get_csr(matrix));
+  
+  const nIndices = result[0];
+  const nValues = result[1];
+  const nIndptr = result[2];
+  
+  const indices = result.slice(3, 3 + nIndices);
+  const values = result.slice(3 + nIndices, 3 + nIndices + nValues);
+  const indptr = result.slice(3 + nIndices + nValues, 3 + nIndices + nValues + nIndptr);
+  
+  return { indices, values, indptr };
+}
+
+/**
+ * Convert a WASM sparse matrix to a 2D JavaScript array.
+ */
+export function wasmSparseMatrixToArray(matrix: WasmSparseMatrix): number[][] {
+  const flat = Array.from(matrix.to_array());
+  const nRows = matrix.n_rows;
+  const nCols = matrix.n_cols;
+  
+  const result: number[][] = [];
+  for (let i = 0; i < nRows; i++) {
+    result.push(flat.slice(i * nCols, (i + 1) * nCols));
+  }
+  return result;
+}
+
+/**
+ * Get all entries from a WASM sparse matrix in ordered format.
+ * @returns Array of {value, row, col} entries, ordered by row then col
+ */
+export function wasmSparseMatrixGetAll(matrix: WasmSparseMatrix): { value: number; row: number; col: number }[] {
+  const flat = Array.from(matrix.get_all_ordered());
+  const entries: { value: number; row: number; col: number }[] = [];
+  
+  for (let i = 0; i < flat.length; i += 3) {
+    entries.push({
+      row: flat[i],
+      col: flat[i + 1],
+      value: flat[i + 2],
+    });
+  }
+  
+  return entries;
 }
