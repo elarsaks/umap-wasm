@@ -47,16 +47,7 @@ export async function initWasm() {
         lastError = e;
       }
       
-      // Strategy 2: Try dynamic import (works in ESM/bundler contexts)
-      try {
-        mod = await import('../wasm/pkg/umap_wasm_core.js');
-        wasmModule = mod;
-        return mod;
-      } catch (e) {
-        lastError = e;
-      }
-      
-      throw lastError || new Error('Could not load WASM module');
+      throw new Error('Could not load WASM module via CommonJS require');
     } catch (err) {
       wasmReady = null;
       wasmModule = null;
