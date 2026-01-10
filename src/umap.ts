@@ -385,7 +385,13 @@ export class UMAP {
     // to the wasm implementation when `useWasmDistance` is enabled and
     // the wasm module is available.
     const distanceWrapper: DistanceFn = (a: Vector, b: Vector) => {
-      if (this.useWasmDistance && wasmBridge.isWasmAvailable()) {
+      if (this.useWasmDistance) {
+        if (!wasmBridge.isWasmAvailable()) {
+          throw new Error(
+            'WASM distance requested via `useWasmDistance: true` but the wasm module is not initialized or available. ' +
+              'Call `await wasmBridge.initWasm()` before using UMAP with wasm distances or build the wasm package.'
+          );
+        }
         return wasmBridge.euclideanWasm(a, b);
       }
       return this.distanceFn(a, b);
@@ -405,7 +411,13 @@ export class UMAP {
    * implementations; otherwise uses the configured JS `distanceFn`.
    */
   computeDistance(a: Vector, b: Vector) {
-    if (this.useWasmDistance && wasmBridge.isWasmAvailable()) {
+    if (this.useWasmDistance) {
+      if (!wasmBridge.isWasmAvailable()) {
+        throw new Error(
+          'WASM distance requested via `useWasmDistance: true` but the wasm module is not initialized or available. ' +
+            'Call `await wasmBridge.initWasm()` before using UMAP with wasm distances or build the wasm package.'
+        );
+      }
       return wasmBridge.euclideanWasm(a, b);
     }
     return this.distanceFn(a, b);
