@@ -17,6 +17,7 @@
  * ==============================================================================
  */
 
+import { vi } from 'vitest';
 import {
   UMAP,
   findABParams,
@@ -112,7 +113,7 @@ describe('UMAP', () => {
 
     const umap = new UMAP({ random });
     umap.setPrecomputedKNN(knnIndices, knnDistances);
-    jest.spyOn(umap as any, 'nearestNeighbors');
+    vi.spyOn(umap as any, 'nearestNeighbors');
     umap.fit(testData);
 
     expect(umap['nearestNeighbors']).toHaveBeenCalledTimes(0);

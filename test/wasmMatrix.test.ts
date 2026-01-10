@@ -2,6 +2,7 @@
  * Tests for WASM SparseMatrix implementation comparing results against JavaScript.
  */
 
+import { vi } from 'vitest';
 import {
   SparseMatrix,
   transpose,
@@ -380,7 +381,14 @@ describe('WASM SparseMatrix vs JS SparseMatrix', () => {
 });
 
 describe('useWasmMatrix toggle', () => {
-  const { UMAP } = require('../src/umap');
+  // Dynamically import to avoid issues with module loading
+  let UMAP: any;
+  
+  beforeAll(async () => {
+    const umap = await import('../src/umap');
+    UMAP = umap.UMAP;
+  });
+  
   const testData = [[1, 2], [3, 4], [5, 6]];
 
   test('uses JS matrix operations when useWasmMatrix is false', () => {
@@ -395,7 +403,7 @@ describe('useWasmMatrix toggle', () => {
 
   test('delegates to wasm when useWasmMatrix is true', async () => {
     // Mock the wasm bridge to assert it is invoked
-    const createMatrixMock = jest.spyOn(wasmBridge, 'createSparseMatrixWasm').mockImplementation(() => {
+    const createMatrixMock = vi.spyOn(wasmBridge, 'createSparseMatrixWasm').mockImplementation(() => {
       return {
         free: () => {},
         n_rows: 3,
@@ -405,13 +413,13 @@ describe('useWasmMatrix toggle', () => {
         set: () => {},
       } as any;
     });
-    const isWasmAvailableMock = jest.spyOn(wasmBridge, 'isWasmAvailable').mockImplementation(() => true);
-    const sparseAddMock = jest.spyOn(wasmBridge, 'sparseAddWasm').mockImplementation((a, b) => a);
-    const sparseSubtractMock = jest.spyOn(wasmBridge, 'sparseSubtractWasm').mockImplementation((a, b) => a);
-    const sparseTransposeMock = jest.spyOn(wasmBridge, 'sparseTransposeWasm').mockImplementation((a) => a);
-    const sparsePairwiseMultiplyMock = jest.spyOn(wasmBridge, 'sparsePairwiseMultiplyWasm').mockImplementation((a, b) => a);
-    const sparseMultiplyScalarMock = jest.spyOn(wasmBridge, 'sparseMultiplyScalarWasm').mockImplementation((a, s) => a);
-    const wasmSparseMatrixGetAllMock = jest.spyOn(wasmBridge, 'wasmSparseMatrixGetAll').mockImplementation(() => []);
+    const isWasmAvailableMock = vi.spyOn(wasmBridge, 'isWasmAvailable').mockImplementation(() => true);
+    const sparseAddMock = vi.spyOn(wasmBridge, 'sparseAddWasm').mockImplementation((a, b) => a);
+    const sparseSubtractMock = vi.spyOn(wasmBridge, 'sparseSubtractWasm').mockImplementation((a, b) => a);
+    const sparseTransposeMock = vi.spyOn(wasmBridge, 'sparseTransposeWasm').mockImplementation((a) => a);
+    const sparsePairwiseMultiplyMock = vi.spyOn(wasmBridge, 'sparsePairwiseMultiplyWasm').mockImplementation((a, b) => a);
+    const sparseMultiplyScalarMock = vi.spyOn(wasmBridge, 'sparseMultiplyScalarWasm').mockImplementation((a, s) => a);
+    const wasmSparseMatrixGetAllMock = vi.spyOn(wasmBridge, 'wasmSparseMatrixGetAll').mockImplementation(() => []);
 
     const umap = new UMAP({ useWasmMatrix: true, nNeighbors: 2, nEpochs: 5 });
 
