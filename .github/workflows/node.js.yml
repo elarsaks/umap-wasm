@@ -31,5 +31,21 @@ jobs:
       - name: Install dependencies
         run: yarn install --immutable
 
+      - name: Install Rust toolchain
+        run: |
+          curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
+          source $HOME/.cargo/env
+          rustup target add wasm32-unknown-unknown
+
+      - name: Install wasm-pack
+        run: |
+          curl https://rustwasm.github.io/wasm-pack/installer/init.sh -sSf | sh
+
+      - name: Build WASM pkg
+        working-directory: wasm
+        run: |
+          source $HOME/.cargo/env
+          wasm-pack build --target bundler --out-dir pkg
+
       - name: Run tests
         run: yarn test

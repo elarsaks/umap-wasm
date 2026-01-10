@@ -63,6 +63,7 @@ import * as nnDescent from './nn_descent';
 import * as tree from './tree';
 import * as utils from './utils';
 import LM from 'ml-levenberg-marquardt';
+import * as wasmBridge from './wasmBridge';
 
 export type DistanceFn = (x: Vector, y: Vector) => number;
 export type RandomFn = () => number;
@@ -84,6 +85,11 @@ export interface UMAPParameters {
    * to euclidean distance.
    */
   distanceFn?: DistanceFn;
+  /**
+   * Whether to use the Rust/WASM-implemented distance functions when
+   * available. Defaults to false.
+   */
+  useWasmDistance?: boolean;
   /**
    * The initial learning rate for the embedding optimization.
    */
@@ -231,6 +237,8 @@ export class UMAP {
   private targetNNeighbors = this.nNeighbors;
 
   private distanceFn: DistanceFn = euclidean;
+  /** Use wasm distance functions when available and enabled via params */
+  private useWasmDistance = false;
 
   // KNN state (can be precomputed and supplied via initializeFit)
   private knnIndices?: number[][];
@@ -259,6 +267,7 @@ export class UMAP {
     };
 
     setParam('distanceFn');
+    setParam('useWasmDistance');
     setParam('learningRate');
     setParam('localConnectivity');
     setParam('minDist');
@@ -372,12 +381,46 @@ export class UMAP {
   }
 
   private makeSearchFns() {
+    // Create a wrapper distance function that conditionally delegates
+    // to the wasm implementation when `useWasmDistance` is enabled and
+    // the wasm module is available.
+    const distanceWrapper: DistanceFn = (a: Vector, b: Vector) => {
+      if (this.useWasmDistance) {
+        if (!wasmBridge.isWasmAvailable()) {
+          throw new Error(
+            'WASM distance requested via `useWasmDistance: true` but the wasm module is not initialized or available. ' +
+              'Call `await wasmBridge.initWasm()` before using UMAP with wasm distances or build the wasm package.'
+          );
+        }
+        return wasmBridge.euclideanWasm(a, b);
+      }
+      return this.distanceFn(a, b);
+    };
+
     const { initFromTree, initFromRandom } = nnDescent.makeInitializations(
-      this.distanceFn
+      distanceWrapper
     );
     this.initFromTree = initFromTree;
     this.initFromRandom = initFromRandom;
-    this.search = nnDescent.makeInitializedNNSearch(this.distanceFn);
+    this.search = nnDescent.makeInitializedNNSearch(distanceWrapper);
+  }
+
+  /**
+   * Compute distance between two vectors using the active configuration.
+   * If `useWasmDistance` is enabled and wasm is available, delegates to wasm
+   * implementations; otherwise uses the configured JS `distanceFn`.
+   */
+  computeDistance(a: Vector, b: Vector) {
+    if (this.useWasmDistance) {
+      if (!wasmBridge.isWasmAvailable()) {
+        throw new Error(
+          'WASM distance requested via `useWasmDistance: true` but the wasm module is not initialized or available. ' +
+            'Call `await wasmBridge.initWasm()` before using UMAP with wasm distances or build the wasm package.'
+        );
+      }
+      return wasmBridge.euclideanWasm(a, b);
+    }
+    return this.distanceFn(a, b);
   }
 
   private makeSearchGraph(X: Vectors) {
