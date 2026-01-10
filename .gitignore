@@ -6,5 +6,5 @@ npm-debug.log
 yarn-error.log
 
 # Ignore generated wasm build artifacts
-wasm/target/
-wasm/pkg/
+# wasm/target/
+# wasm/pkg/
