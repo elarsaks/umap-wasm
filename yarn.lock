@@ -4403,9 +4403,9 @@ __metadata:
   languageName: node
   linkType: hard
 
-"umap-js@workspace:.":
+"umap-wasm@workspace:.":
   version: 0.0.0-use.local
-  resolution: "umap-js@workspace:."
+  resolution: "umap-wasm@workspace:."
   dependencies:
     "@types/jest": "npm:^30.0.0"
     "@types/node": "npm:^25.0.3"
