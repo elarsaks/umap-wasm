@@ -1,148 +1,328 @@
-[![Build Status](https://travis-ci.com/PAIR-code/umap-js.svg?branch=master)](https://travis-ci.com/PAIR-code/umap-js.svg?branch=master)
+# UMAP-WASM: WebAssembly-Accelerated UMAP for JavaScript
 
-# UMAP-JS
+[![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](LICENSE)
 
-This fork is part of the master’s thesis:
+A high-performance implementation of Uniform Manifold Approximation and Projection (UMAP) for JavaScript environments, featuring selective WebAssembly acceleration for compute-intensive operations.
 
-> WebAssembly-Accelerated UMAP for Browser Environment – Elar Saks, TAMK, 2026
+## 📚 Academic Context
 
-It evaluates selectively rewriting performance‑critical parts of UMAP in Rust and compiling them to WebAssembly (WASM) for faster browser execution, while keeping the JavaScript API.
+This project is part of a master's thesis:
 
-## Attribution
+**Title:** *WebAssembly-Accelerated UMAP for Browser Environments*  
+**Author:** Elar Saks  
+**Institution:** Tampere University of Applied Sciences (TAMK)  
+**Year:** 2026
 
-This project is a fork of the upstream `umap-js` library from PAIR-code (Google), which is a JavaScript reimplementation of the original Python UMAP reference implementation by McInnes et al.
+### Research Objectives
 
-- Upstream JS project: https://github.com/PAIR-code/umap-js
-- Original Python implementation: https://github.com/lmcinnes/umap
-- Paper: McInnes, Healy & Melville (2018), “UMAP: Uniform Manifold Approximation and Projection for Dimension Reduction”
+The thesis investigates hybrid JavaScript/WebAssembly architectures for scientific computing in browsers, specifically:
 
-The thesis work builds on top of the upstream implementation and focuses on adding an optional Rust+WASM execution path for selected hot spots; credit for the baseline algorithm implementation belongs to the original authors and upstream maintainers.
+- **Performance Analysis**: Quantifying speedup gains from selective Rust/WASM compilation of hot-path computational kernels
+- **Interoperability Patterns**: Evaluating efficient data marshalling between JavaScript and WebAssembly memory spaces
+- **Practical Implementation**: Maintaining API compatibility while optimizing performance-critical components
+- **Trade-off Analysis**: Assessing development complexity, bundle size, and runtime performance improvements
 
-Uniform Manifold Approximation and Projection (UMAP) is a dimension reduction technique that can be used for visualisation similarly to t-SNE, but also for general non-linear dimension reduction.
+## 🎯 Overview
 
-There are a few important differences between the python implementation and the JS port.
+Uniform Manifold Approximation and Projection (UMAP) is a dimension reduction technique used for visualization and general non-linear dimension reduction, offering advantages over t-SNE in speed and preservation of global structure.
 
-- The optimization step is seeded with a random embedding rather than a spectral embedding. This gives comparable results for smaller datasets. The spectral embedding computation relies on efficient eigenvalue / eigenvector computations that are not easily done in JS.
-- There is no specialized functionality for angular distances or sparse data representations.
+This implementation builds upon the PAIR-code `umap-js` library with strategic WebAssembly optimizations for:
+- Distance computations
+- Nearest neighbor search operations  
+- Matrix operations in optimization loops
+- Nearest‑neighbour search (NN‑Descent) *(TODO)*
+- Gradient‑descent layout optimisation *(TODO)*
 
-## Consume (library usage)
+### Key Features
 
-Install from npm:
+- **Hybrid Architecture**: JavaScript implementation with optional WASM acceleration for hot paths
+- **API Compatibility**: Drop-in replacement for standard `umap-js` usage patterns
+- **Flexible Execution**: Synchronous, asynchronous, and step-by-step fitting modes
+- **Supervised Learning**: Support for label-based projection
+- **Transform Capability**: Project new points into existing embeddings
 
-```sh
-yarn add umap-js
+## 🏆 Attribution & Lineage
+
+This project is a research fork that extends the original UMAP implementations:
+
+### Upstream JavaScript Implementation
+- **Project**: [umap-js](https://github.com/PAIR-code/umap-js)
+- **Maintainer**: PAIR (People + AI Research) at Google
+- **License**: Apache 2.0
+
+### Original UMAP Algorithm
+- **Project**: [umap](https://github.com/lmcinnes/umap)  
+- **Authors**: Leland McInnes, John Healy, James Melville
+- **Reference**: McInnes, L., Healy, J., & Melville, J. (2018). UMAP: Uniform Manifold Approximation and Projection for Dimension Reduction. *arXiv preprint arXiv:1802.03426*.
+
+**Credit**: The core UMAP algorithm implementation and JavaScript port are the work of the original and upstream authors. This thesis project focuses exclusively on performance optimization through selective WebAssembly compilation.
+
+## ⚡ Implementation Notes
+
+### Differences from Python UMAP
+
+- **Initialization**: Uses random embedding initialization instead of spectral embedding (eigenvalue computations are computationally prohibitive in JavaScript)
+- **Sparse Data**: No specialized sparse data structures (may be addressed in future work)
+- **Angular Distances**: Not currently implemented
+
+These differences result in comparable quality for most use cases, with the random initialization performing well on small to medium datasets.
+
+## 📦 Installation
+
+```bash
+npm install umap-wasm
+# or
+yarn add umap-wasm
 ```
 
-Synchronous fitting:
+## 🚀 Usage
+
+### Basic Usage (Synchronous)
 
 ```javascript
-import { UMAP } from 'umap-js';
+import { UMAP } from 'umap-wasm';
 
-const umap = new UMAP();
+const umap = new UMAP({
+  nComponents: 2,
+  nNeighbors: 15,
+  minDist: 0.1
+});
+
 const embedding = umap.fit(data);
 ```
 
-Asynchronous fitting:
+### Asynchronous Fitting with Progress Tracking
 
 ```javascript
-import { UMAP } from 'umap-js';
+import { UMAP } from 'umap-wasm';
 
 const umap = new UMAP();
 const embedding = await umap.fitAsync(data, epochNumber => {
-  // check progress and give user feedback, or return `false` to stop
+  console.log(`Epoch ${epochNumber} complete`);
+  // Return false to stop early if needed
+  return true;
 });
 ```
 
-Step-by-step fitting:
+### Step-by-Step Fitting
+
+For fine-grained control over the optimization process:
 
 ```javascript
-import { UMAP } from 'umap-js';
+import { UMAP } from 'umap-wasm';
 
 const umap = new UMAP();
 const nEpochs = umap.initializeFit(data);
+
 for (let i = 0; i < nEpochs; i++) {
   umap.step();
+  // Update UI, check convergence, etc.
 }
+
 const embedding = umap.getEmbedding();
 ```
 
-Supervised projection using labels:
+### Supervised Projection
+
+Use label information to guide the embedding:
 
 ```javascript
-import { UMAP } from 'umap-js';
+import { UMAP } from 'umap-wasm';
 
+const labels = [0, 0, 1, 1, 2, 2]; // Category labels for each data point
 const umap = new UMAP();
 umap.setSupervisedProjection(labels);
 const embedding = umap.fit(data);
 ```
 
-Transforming additional points after fitting:
+### Transforming New Points
+
+Project additional data points into an existing embedding space:
 
 ```javascript
-import { UMAP } from 'umap-js';
+import { UMAP } from 'umap-wasm';
 
 const umap = new UMAP();
-umap.fit(data);
-const transformed = umap.transform(additionalData);
+const embedding = umap.fit(trainingData);
+
+// Transform new points into the same embedding space
+const newEmbedding = umap.transform(newData);
 ```
 
-Common parameters:
+## 🔧 Configuration Parameters
 
-The UMAP constructor can accept a number of hyperparameters via a `UMAPParameters` object, with the most common described below. See [umap.ts](./src/umap.ts) for more details.
+The UMAP constructor accepts a `UMAPParameters` object with the following options:
 
-| Parameter     | Description                                                                                                                         | default                                                                                                             |
-| ------------- | ----------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------- |
-| `nComponents` | The number of components (dimensions) to project the data to                                                                        | 2                                                                                                                   |
-| `nEpochs`     | The number of epochs to optimize embeddings via SGD                                                                                 | (computed automatically)                                                                                            |
-| `nNeighbors`  | The number of nearest neighbors to construct the fuzzy manifold                                                                     | 15                                                                                                                  |
-| `minDist`     | The effective minimum distance between embedded points, used with `spread` to control the clumped/dispersed nature of the embedding | 0.1                                                                                                                 |
-| `spread`      | The effective scale of embedded points, used with `minDist` to control the clumped/dispersed nature of the embedding                | 1.0                                                                                                                 |
-| `random`      | A pseudo-random-number generator for controlling stochastic processes                                                               | `Math.random`                                                                                                       |
-| `distanceFn`  | A custom distance function to use                                                                                                   | [`euclidean`](https://github.com/PAIR-code/umap-js/blob/73f181c8d7b58b051006aff7e492e259d6a32251/src/umap.ts#L1076) |
+| Parameter | Type | Default | Description |
+|-----------|------|---------|-------------|
+| `nComponents` | `number` | `2` | Target dimensionality of the embedding |
+| `nNeighbors` | `number` | `15` | Number of nearest neighbors for manifold approximation |
+| `nEpochs` | `number` | *auto* | Number of optimization iterations (computed if not specified) |
+| `minDist` | `number` | `0.1` | Minimum distance between embedded points |
+| `spread` | `number` | `1.0` | Effective scale of embedded points |
+| `random` | `() => number` | `Math.random` | PRNG for reproducibility |
+| `distanceFn` | `DistanceFn` | `euclidean` | Distance metric for input space |
+| `useWasmDistance` | `boolean` | `false` | Whether to use Rust/WASM distance functions when available |
+| `useWasmTree` | `boolean` | `false` | Whether to use Rust/WASM random projection tree construction when available |
+| `useWasmMatrix` | `boolean` | `false` | Whether to use Rust/WASM sparse matrix operations when available |
+
+### WASM Components & Status
+
+The project exposes configuration flags to selectively enable WASM-accelerated components. The table below maps the high-level operations to the available configuration flags and current implementation status.
+
+| Component | Config Flag | Status | Notes |
+|-----------|-------------|--------|-------|
+| Distance computations | `useWasmDistance` | Implemented | WASM provides `euclidean` and `cosine` implementations (via `wasmBridge`). |
+| Nearest neighbour search operations | `useWasmTree` | Implemented | WASM-accelerated random projection tree construction is available and can be enabled with `useWasmTree`. |
+| Matrix operations in optimization loops | `useWasmMatrix` | Implemented | Sparse-matrix operations (transpose, element-wise ops, CSR conversion, normalization) are implemented in WASM. |
+| Nearest‑neighbour search (NN‑Descent) | — | TODO | NN‑Descent core still uses the JS implementation; WASM integration for the NN‑Descent algorithm is planned. |
+| Gradient‑descent layout optimisation | — | TODO | The optimization loop runs in JS; a WASM-accelerated optimizer is under investigation. |
+
+
+### Example with Custom Parameters
 
 ```typescript
+import { UMAP } from 'umap-wasm';
+
 const umap = new UMAP({
-  nComponents: 2,
-  nEpochs: 400,
-  nNeighbors: 15,
+  nComponents: 3,          // 3D embedding
+  nNeighbors: 30,          // Larger neighborhood
+  minDist: 0.3,            // More spread out
+  spread: 2.0,             // Wider scale
+  nEpochs: 500,            // More optimization steps
+  random: seedrandom('42') // Reproducible results
 });
 ```
 
-## Develop (this repo)
+## 🛠️ Development
 
-This project is pinned to Yarn 4.12.0.
+### Prerequisites
 
-Install dependencies:
+- **Node.js** 18+ and **Yarn** 4.12.0
+- **Rust** toolchain with `wasm32-unknown-unknown` target
+- **wasm-pack** for WebAssembly builds
 
-```sh
+### Setup
+
+```bash
+# Install dependencies
 yarn install
+
+# Install Rust target (if not already installed)
+rustup target add wasm32-unknown-unknown
+
+# Install wasm-pack
+curl https://rustwasm.github.io/wasm-pack/installer/init.sh -sSf | sh
 ```
 
-Run tests:
+### Build Commands
 
-```sh
-yarn test
-```
-
-Build TypeScript + bundle:
-
-```sh
+```bash
+# Build TypeScript and bundle
 yarn build
-```
 
-### WASM (experimental)
-
-The Rust core lives in `wasm/` and is compiled to WebAssembly using `wasm-pack`.
-
-Requirements:
-
-- Rust toolchain with the `wasm32-unknown-unknown` target installed.
-- `wasm-pack` available on `PATH`.
-
-Build the WASM package:
-
-```sh
+# Build WebAssembly module
 yarn build:wasm
+
+# Run tests
+yarn test
+
+# Run tests with coverage
+yarn test:coverage
 ```
 
-This runs `wasm-pack build` in `wasm/` and writes artifacts to `wasm/pkg/`.
+### Project Structure
+
+```
+umap-wasm/
+├── src/               # TypeScript implementation
+│   ├── umap.ts       # Main UMAP class
+│   ├── matrix.ts     # Matrix operations
+│   ├── tree.ts       # KD-tree for nearest neighbors
+│   └── wasmBridge.ts # WASM interop layer
+├── wasm/             # Rust/WASM implementation
+│   ├── src/          # Rust source code
+│   └── pkg/          # Built WASM artifacts
+├── test/             # Test suites
+└── lib/              # Output bundles
+```
+
+### WebAssembly Development
+
+The Rust core is located in the `wasm/` directory. To modify WASM components:
+
+```bash
+cd wasm
+cargo build --target wasm32-unknown-unknown
+wasm-pack build --target web
+```
+
+The build artifacts are generated in `wasm/pkg/` and consumed by the TypeScript bridge.
+
+## 🧪 Testing
+
+```bash
+# Run all tests
+yarn test
+
+# Run specific test suite
+yarn test matrix.test.ts
+
+# Watch mode for development
+yarn test --watch
+```
+
+## 📊 Benchmarking
+
+Performance benchmarks are available in the companion `umap-bench` repository, which includes:
+
+- Comparative analysis (pure JS vs WASM-accelerated)
+- Dataset size scaling tests
+- Browser compatibility tests
+- Memory profiling
+
+See [../umap-bench/README.md](../umap-bench/README.md) for details.
+
+## 🤝 Contributing
+
+This is a thesis research project with specific academic goals. While external contributions are not actively solicited during the research phase, feedback and bug reports are welcome.
+
+Please see [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines.
+
+## 📄 License
+
+Apache License 2.0 - see [LICENSE](LICENSE) for details.
+
+This project inherits the Apache 2.0 license from the upstream `umap-js` project.
+
+## 📚 References
+
+### Academic Publications
+
+1. **McInnes, L., Healy, J., & Melville, J.** (2018). UMAP: Uniform Manifold Approximation and Projection for Dimension Reduction. *arXiv preprint arXiv:1802.03426*. [https://arxiv.org/abs/1802.03426](https://arxiv.org/abs/1802.03426)
+
+2. **McInnes, L., & Healy, J.** (2017). Accelerated Hierarchical Density Based Clustering. *IEEE International Conference on Data Mining Workshops (ICDMW)*, 33-42.
+
+### Related Projects
+
+- **umap-js**: [https://github.com/PAIR-code/umap-js](https://github.com/PAIR-code/umap-js)
+- **umap (Python)**: [https://github.com/lmcinnes/umap](https://github.com/lmcinnes/umap)
+- **UMAP Documentation**: [https://umap-learn.readthedocs.io/](https://umap-learn.readthedocs.io/)
+
+## 🙏 Acknowledgments
+
+- **PAIR team at Google** for the original JavaScript implementation
+- **Leland McInnes** and collaborators for the UMAP algorithm
+- **TAMK** thesis advisors and reviewers
+
+## 📧 Contact
+
+For thesis-related inquiries or research collaboration:
+
+**Elar Saks**  
+Master's Thesis Project  
+Tampere University of Applied Sciences
+
+---
+
+*This README is maintained as part of academic research. Last updated: January 2026*
