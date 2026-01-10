@@ -1,3 +1,4 @@
+import { vi } from 'vitest';
 import * as tree from '../src/tree';
 import { initWasm, isWasmAvailable } from '../src/wasmBridge';
 import { testData } from './test_data';
@@ -119,7 +120,14 @@ describe('WASM random projection tree', () => {
 });
 
 describe('useWasmTree toggle', () => {
-  const { UMAP } = require('../src/umap');
+  // Dynamically import to avoid issues with module loading
+  let UMAP: any;
+  
+  beforeAll(async () => {
+    const umap = await import('../src/umap');
+    UMAP = umap.UMAP;
+  });
+  
   const testData = [[1, 2], [3, 4], [5, 6]];
 
   test('uses JS tree when useWasmTree is false', () => {

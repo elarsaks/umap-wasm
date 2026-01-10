@@ -6,8 +6,14 @@ export async function initWasm() {
   
   wasmReady = (async () => {
     try {
-      // eslint-disable-next-line @typescript-eslint/no-var-requires
-      const mod = require('../wasm/pkg/umap_wasm_core.js');
+      // Detect environment and load appropriate build
+      const isNode = typeof process !== 'undefined' && process.versions != null && process.versions.node != null;
+      const wasmPath = isNode 
+        ? '../wasm/pkg/node/umap_wasm_core.js'
+        : '../wasm/pkg/web/umap_wasm_core.js';
+      
+      // Dynamic import for ES modules
+      const mod = await import(wasmPath);
       wasmModule = mod;
       return mod;
     } catch (err) {

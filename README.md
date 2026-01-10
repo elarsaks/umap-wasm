@@ -221,11 +221,17 @@ curl https://rustwasm.github.io/wasm-pack/installer/init.sh -sSf | sh
 # Build TypeScript and bundle
 yarn build
 
-# Build WebAssembly module
+# Build WebAssembly modules (both web and node targets)
 yarn build:wasm
 
 # Run tests
 yarn test
+
+# Run tests in watch mode
+yarn test:watch
+
+# Run tests with UI
+yarn test:ui
 
 # Run tests with coverage
 yarn test:coverage
@@ -243,7 +249,9 @@ umap-wasm/
 ├── wasm/             # Rust/WASM implementation
 │   ├── src/          # Rust source code
 │   └── pkg/          # Built WASM artifacts
-├── test/             # Test suites
+│       ├── web/      # Web target (ES modules)
+│       └── node/     # Node target (CommonJS)
+├── test/             # Test suites (Vitest)
 └── lib/              # Output bundles
 ```
 
@@ -254,12 +262,19 @@ The Rust core is located in the `wasm/` directory. To modify WASM components:
 ```bash
 cd wasm
 cargo build --target wasm32-unknown-unknown
-wasm-pack build --target web
+
+# Build for web (ES modules)
+wasm-pack build --target web --out-dir pkg/web
+
+# Build for Node.js (CommonJS)
+wasm-pack build --target nodejs --out-dir pkg/node
 ```
 
-The build artifacts are generated in `wasm/pkg/` and consumed by the TypeScript bridge.
+The build artifacts are generated in `wasm/pkg/web/` and `wasm/pkg/node/`. The TypeScript bridge automatically detects the runtime environment and loads the appropriate build.
 
 ## 🧪 Testing
+
+This project uses [Vitest](https://vitest.dev/) for fast unit testing.
 
 ```bash
 # Run all tests
@@ -269,7 +284,13 @@ yarn test
 yarn test matrix.test.ts
 
 # Watch mode for development
-yarn test --watch
+yarn test:watch
+
+# UI mode (visual test runner)
+yarn test:ui
+
+# Generate coverage report
+yarn test:coverage
 ```
 
 ## 📊 Benchmarking

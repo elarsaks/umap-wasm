@@ -1,0 +1,1 @@
+/mnt/c/Users/elars/Desktop/Thesis/umap-wasm/wasm/target/wasm32-unknown-unknown/release/libumap_wasm_core.rlib: /mnt/c/Users/elars/Desktop/Thesis/umap-wasm/wasm/src/distances.rs /mnt/c/Users/elars/Desktop/Thesis/umap-wasm/wasm/src/lib.rs /mnt/c/Users/elars/Desktop/Thesis/umap-wasm/wasm/src/matrix.rs /mnt/c/Users/elars/Desktop/Thesis/umap-wasm/wasm/src/tree.rs
