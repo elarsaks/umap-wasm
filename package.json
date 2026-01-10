@@ -1,17 +1,28 @@
 {
-  "name": "umap-js",
-  "version": "1.4.0",
+  "name": "umap-wasm",
+  "version": "1.4.1",
   "description": "JavaScript implementation of UMAP",
   "author": {
     "name": "Andy Coenen",
     "email": "andycoenen@google.com"
   },
   "license": "MIT",
-  "repository": "PAIR-code/umap-js",
-  "main": "dist/index.js",
+  "repository": "elarsaks/umap-wasm",
+  "main": "lib/umap-js.js",
+  "module": "lib/umap-js.js",
   "unpkg": "lib/umap-js.min.js",
   "jsdelivr": "lib/umap-js.min.js",
   "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "import": "./lib/umap-js.js",
+      "require": "./lib/umap-js.js"
+    }
+  },
+  "files": [
+    "lib",
+    "dist"
+  ],
   "packageManager": "yarn@4.12.0",
   "scripts": {
     "test": "jest",
