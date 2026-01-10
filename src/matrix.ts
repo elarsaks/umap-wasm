@@ -42,7 +42,7 @@ export class SparseMatrix {
       );
     }
 
-    // TODO: Assert that dims are legit.
+    // validate dims
     this.nRows = dims[0];
     this.nCols = dims[1];
     for (let i = 0; i < values.length; i++) {

@@ -309,7 +309,6 @@ function flattenTree(tree: RandomProjectionTreeNode, leafSize: number) {
   const nNodes = numNodes(tree);
   const nLeaves = numLeaves(tree);
 
-  // TODO: Verify that sparse code is not relevant...
   const hyperplanes = utils
     .range(nNodes)
     .map(() => utils.zeros(tree.hyperplane ? tree.hyperplane.length : 0));
@@ -335,8 +334,7 @@ function recursiveFlatten(
   if (tree.isLeaf) {
     children[nodeNum][0] = -leafNum;
 
-    // TODO: Triple check this operation corresponds to
-    // indices[leafNum : tree.indices.shape[0]] = tree.indices
+    // copy leaf indices into the leaf slot
     indices[leafNum].splice(0, tree.indices!.length, ...tree.indices!);
     leafNum += 1;
     return { nodeNum, leafNum };
