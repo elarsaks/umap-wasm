@@ -1,5 +1,3 @@
-use wasm_bindgen::prelude::*;
-
 #[cfg(feature = "allocator")]
 #[global_allocator]
 static ALLOC: wee_alloc::WeeAlloc = wee_alloc::WeeAlloc::INIT;
