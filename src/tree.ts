@@ -125,7 +125,7 @@ export function makeForest(
   nNeighbors: number,
   nTrees: number,
   random: RandomFn,
-  useWasm = true
+  useWasm = false
 ) {
   const leafSize = Math.max(10, nNeighbors);
 

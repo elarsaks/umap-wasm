@@ -4,13 +4,59 @@ let wasmModule: any = null;
 export async function initWasm() {
   if (wasmReady) return wasmReady;
   
-  // Use dynamic import to avoid Jest parsing issues with ES modules
   wasmReady = (async () => {
     try {
-      // Try to dynamically import the WASM module
-      const mod = await import('../wasm/pkg/umap_wasm_core.js');
-      wasmModule = mod;
-      return mod;
+      // Try multiple strategies to load the WASM module to handle different runtime contexts
+      let mod: any;
+      let lastError: any = null;
+      
+      // Strategy 1: Try CommonJS require with absolute paths (works in Node/Jest)
+      // Use an evaluated require to avoid webpack statically bundling `path`/`fs`.
+      try {
+        // eslint-disable-next-line no-eval
+        const maybeRequire = eval("typeof __non_webpack_require__ !== 'undefined' ? __non_webpack_require__ : (typeof require !== 'undefined' ? require : undefined)");
+        if (maybeRequire) {
+          try {
+            const pathModule = maybeRequire('path');
+            const fsModule = maybeRequire('fs');
+            const candidates = [
+              pathModule.resolve(process.cwd(), 'wasm/pkg/umap_wasm_core.js'),
+              pathModule.resolve(__dirname, '../wasm/pkg/umap_wasm_core.js'),
+              pathModule.resolve(__dirname, '../../wasm/pkg/umap_wasm_core.js'),
+              // When running from dist/src/, need to go up more levels
+              pathModule.resolve(__dirname, '../../../wasm/pkg/umap_wasm_core.js'),
+            ];
+
+            for (const candidate of candidates) {
+              try {
+                if (fsModule.existsSync(candidate)) {
+                  mod = maybeRequire(candidate);
+                  wasmModule = mod;
+                  return mod;
+                }
+              } catch (e) {
+                // Try next candidate
+              }
+            }
+          } catch (e) {
+            // ignore and fall through to dynamic import
+            lastError = e;
+          }
+        }
+      } catch (e) {
+        lastError = e;
+      }
+      
+      // Strategy 2: Try dynamic import (works in ESM/bundler contexts)
+      try {
+        mod = await import('../wasm/pkg/umap_wasm_core.js');
+        wasmModule = mod;
+        return mod;
+      } catch (e) {
+        lastError = e;
+      }
+      
+      throw lastError || new Error('Could not load WASM module');
     } catch (err) {
       wasmReady = null;
       wasmModule = null;
