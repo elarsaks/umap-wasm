@@ -57,8 +57,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-import { RandomFn } from './umap';
-import * as utils from './utils';
+import { RandomFn } from './umap.js';
+import * as utils from './utils.js';
 
 export type Heap = number[][][];
 

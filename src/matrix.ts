@@ -17,7 +17,7 @@
  * ==============================================================================
  */
 
-import * as utils from './utils';
+import * as utils from './utils.js';
 
 type Entry = { value: number; row: number; col: number };
 

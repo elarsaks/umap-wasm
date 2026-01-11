@@ -17,5 +17,5 @@
  * ==============================================================================
  */
 
-export { UMAP, UMAPParameters } from './umap';
-export { initWasm, isWasmAvailable } from './wasmBridge';
+export { UMAP, UMAPParameters } from './umap.js';
+export { initWasm, isWasmAvailable } from './wasmBridge.js';
