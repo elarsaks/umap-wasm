@@ -17,7 +17,7 @@
  * ==============================================================================
  */
 
-import { RandomFn } from './umap';
+import { RandomFn } from './umap.js';
 
 /**
  * Simple random integer function

@@ -57,9 +57,9 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-import * as utils from './utils';
-import { RandomFn, Vector, Vectors } from './umap';
-import { isWasmAvailable, buildRpTreeWasm, searchFlatTreeWasm, wasmTreeToJs, WasmFlatTree } from './wasmBridge';
+import * as utils from './utils.js';
+import { RandomFn, Vector, Vectors } from './umap.js';
+import { isWasmAvailable, buildRpTreeWasm, searchFlatTreeWasm, wasmTreeToJs, WasmFlatTree } from './wasmBridge.js';
 
 /**
  * Tree functionality for approximating nearest neighbors

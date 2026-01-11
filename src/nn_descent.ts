@@ -57,11 +57,11 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-import * as heap from './heap';
-import * as matrix from './matrix';
-import * as tree from './tree';
-import * as utils from './utils';
-import { RandomFn, Vectors, DistanceFn } from './umap';
+import * as heap from './heap.js';
+import * as matrix from './matrix.js';
+import * as tree from './tree.js';
+import * as utils from './utils.js';
+import { RandomFn, Vectors, DistanceFn } from './umap.js';
 
 /**
  * Create a version of nearest neighbor descent.

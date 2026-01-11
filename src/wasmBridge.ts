@@ -14,6 +14,13 @@ export async function initWasm() {
       
       // Dynamic import for ES modules
       const mod = await import(wasmPath);
+      
+      // wasm-pack exports a default init function that must be called
+      // to load and instantiate the actual .wasm binary
+      if (typeof mod.default === 'function') {
+        await mod.default();
+      }
+      
       wasmModule = mod;
       return mod;
     } catch (err) {

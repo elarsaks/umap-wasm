@@ -57,13 +57,13 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-import * as heap from './heap';
-import * as matrix from './matrix';
-import * as nnDescent from './nn_descent';
-import * as tree from './tree';
-import * as utils from './utils';
+import * as heap from './heap.js';
+import * as matrix from './matrix.js';
+import * as nnDescent from './nn_descent.js';
+import * as tree from './tree.js';
+import * as utils from './utils.js';
 import LM from 'ml-levenberg-marquardt';
-import * as wasmBridge from './wasmBridge';
+import * as wasmBridge from './wasmBridge.js';
 
 export type DistanceFn = (x: Vector, y: Vector) => number;
 export type RandomFn = () => number;
