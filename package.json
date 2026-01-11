@@ -1,6 +1,6 @@
 {
   "name": "@elarsaks/umap-wasm",
-  "version": "0.1.3",
+  "version": "0.1.4",
   "description": "JavaScript implementation of UMAP",
   "author": {
     "name": "Andy Coenen",
@@ -12,7 +12,7 @@
     "url": "git+https://github.com/elarsaks/umap-wasm.git"
   },
   "main": "lib/umap-js.js",
-  "module": "dist/index.js", 
+  "module": "dist/index.js",
   "unpkg": "lib/umap-js.min.js",
   "jsdelivr": "lib/umap-js.min.js",
   "types": "dist/src/index.d.ts",
