@@ -397,6 +397,26 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@elarsaks/umap-wasm@workspace:.":
+  version: 0.0.0-use.local
+  resolution: "@elarsaks/umap-wasm@workspace:."
+  dependencies:
+    "@types/jest": "npm:^30.0.0"
+    "@types/node": "npm:^25.0.3"
+    jest: "npm:^30.2.0"
+    ml-levenberg-marquardt: "npm:^2.1.1"
+    prando: "npm:^5.1.2"
+    prettier: "npm:^3.7.4"
+    ts-jest: "npm:^29.4.6"
+    ts-loader: "npm:^9.5.4"
+    ts-node: "npm:^10.9.2"
+    typescript: "npm:^5.9.3"
+    vitest: "npm:^1.4.0"
+    webpack: "npm:^5.104.1"
+    webpack-cli: "npm:^6.0.1"
+  languageName: unknown
+  linkType: soft
+
 "@emnapi/core@npm:^1.4.3":
   version: 1.8.1
   resolution: "@emnapi/core@npm:1.8.1"
@@ -5323,26 +5343,6 @@ __metadata:
   checksum: 10c0/83b0a90eca35f778e07cad9622b80c448b6aad457c9ff8e568afed978212b42930a95f9e1be943a1ffa4258a3340fbb899f41461131c05bb1d0a9c303aed8479
   languageName: node
   linkType: hard
-
-"umap-wasm@workspace:.":
-  version: 0.0.0-use.local
-  resolution: "umap-wasm@workspace:."
-  dependencies:
-    "@types/jest": "npm:^30.0.0"
-    "@types/node": "npm:^25.0.3"
-    jest: "npm:^30.2.0"
-    ml-levenberg-marquardt: "npm:^2.1.1"
-    prando: "npm:^5.1.2"
-    prettier: "npm:^3.7.4"
-    ts-jest: "npm:^29.4.6"
-    ts-loader: "npm:^9.5.4"
-    ts-node: "npm:^10.9.2"
-    typescript: "npm:^5.9.3"
-    vitest: "npm:^1.4.0"
-    webpack: "npm:^5.104.1"
-    webpack-cli: "npm:^6.0.1"
-  languageName: unknown
-  linkType: soft
 
 "undici-types@npm:~7.16.0":
   version: 7.16.0
