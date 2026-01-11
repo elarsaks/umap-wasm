@@ -1,0 +1,64 @@
+{
+  "name": "@elarsaks/umap-wasm",
+  "version": "0.1.3",
+  "description": "JavaScript implementation of UMAP",
+  "author": {
+    "name": "Andy Coenen",
+    "email": "andycoenen@google.com"
+  },
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/elarsaks/umap-wasm.git"
+  },
+  "main": "lib/umap-js.js",
+  "module": "dist/index.js", 
+  "unpkg": "lib/umap-js.min.js",
+  "jsdelivr": "lib/umap-js.min.js",
+  "types": "dist/src/index.d.ts",
+  "exports": {
+    ".": {
+      "import": "./dist/index.js",
+      "require": "./lib/umap-js.js",
+      "types": "./dist/index.d.ts"
+    }
+  },
+  "files": [
+    "lib",
+    "dist",
+    "wasm/pkg"
+  ],
+  "packageManager": "yarn@4.12.0",
+  "scripts": {
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:playwright": "playwright test",
+    "preview": "npx serve . -p 4173",
+    "bundle": "rm -rf lib && webpack --config ./webpack/lib.config.mjs && webpack --config ./webpack/lib.min.config.mjs",
+    "build": "rm -rf dist && tsc && yarn bundle",
+    "build:wasm": "cd wasm && wasm-pack build --target web --out-dir pkg",
+    "prepublishOnly": "yarn build:wasm && yarn build"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.57.0",
+    "@types/jest": "^30.0.0",
+    "@types/node": "^25.0.3",
+    "jest": "^30.2.0",
+    "prando": "^5.1.2",
+    "prettier": "^3.7.4",
+    "ts-jest": "^29.4.6",
+    "ts-loader": "^9.5.4",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.9.3",
+    "vitest": "^1.4.0",
+    "webpack": "^5.104.1",
+    "webpack-cli": "^6.0.1"
+  },
+  "dependencies": {
+    "ml-levenberg-marquardt": "^2.1.1"
+  },
+  "publishConfig": {
+    "access": "public",
+    "registry": "https://registry.npmjs.org/"
+  }
+}

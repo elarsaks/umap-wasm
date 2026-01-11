@@ -1,0 +1,14 @@
+
+.DS_Store
+node_modules/
+dist/
+npm-debug.log
+yarn-error.log
+
+# Ignore generated wasm build artifacts
+wasm/target/
+wasm/pkg/
+
+# Playwright test artifacts
+test-results/
+playwright-report/
