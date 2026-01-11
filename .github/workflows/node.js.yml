@@ -1,4 +1,4 @@
-name: Unit Tests
+name: Tests
 
 on:
   push:
@@ -45,7 +45,18 @@ jobs:
         working-directory: wasm
         run: |
           source $HOME/.cargo/env
-          wasm-pack build --target nodejs --out-dir pkg
+          wasm-pack build --target web --out-dir pkg
 
-      - name: Run tests
+      - name: Build library
+        run: |
+          source $HOME/.cargo/env
+          yarn build
+
+      - name: Run unit tests
         run: yarn test
+
+      - name: Install Playwright Browsers
+        run: yarn playwright install chromium
+
+      - name: Run Playwright tests
+        run: yarn test:playwright

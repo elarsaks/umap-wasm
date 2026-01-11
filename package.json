@@ -1,6 +1,6 @@
 {
   "name": "@elarsaks/umap-wasm",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "JavaScript implementation of UMAP",
   "author": {
     "name": "Andy Coenen",
@@ -31,12 +31,15 @@
   "scripts": {
     "test": "vitest run",
     "test:watch": "vitest",
+    "test:playwright": "playwright test",
+    "preview": "npx serve . -p 4173",
     "bundle": "rm -rf lib && webpack --config ./webpack/lib.config.ts && webpack --config ./webpack/lib.min.config.ts",
     "build": "rm -rf dist && tsc && yarn bundle",
     "build:wasm": "cd wasm && wasm-pack build --target web --out-dir pkg",
     "prepublishOnly": "yarn build:wasm && yarn build"
   },
   "devDependencies": {
+    "@playwright/test": "^1.57.0",
     "@types/jest": "^30.0.0",
     "@types/node": "^25.0.3",
     "jest": "^30.2.0",
