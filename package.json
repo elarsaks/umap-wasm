@@ -25,7 +25,8 @@
   ],
   "packageManager": "yarn@4.12.0",
   "scripts": {
-    "test": "jest",
+    "test": "vitest run",
+    "test:watch": "vitest",
     "bundle": "rm -rf lib && webpack --config ./webpack/lib.config.ts && webpack --config ./webpack/lib.min.config.ts",
     "build": "rm -rf dist && tsc && yarn bundle",
     "build:wasm": "cd wasm && wasm-pack build --target web --out-dir pkg"
@@ -40,6 +41,7 @@
     "ts-loader": "^9.5.4",
     "ts-node": "^10.9.2",
     "typescript": "^5.9.3",
+    "vitest": "^1.4.0",
     "webpack": "^5.104.1",
     "webpack-cli": "^6.0.1"
   },
