@@ -24,7 +24,8 @@
   },
   "files": [
     "lib",
-    "dist"
+    "dist",
+    "wasm/pkg"
   ],
   "packageManager": "yarn@4.12.0",
   "scripts": {
@@ -32,7 +33,8 @@
     "test:watch": "vitest",
     "bundle": "rm -rf lib && webpack --config ./webpack/lib.config.ts && webpack --config ./webpack/lib.min.config.ts",
     "build": "rm -rf dist && tsc && yarn bundle",
-    "build:wasm": "cd wasm && wasm-pack build --target web --out-dir pkg"
+    "build:wasm": "cd wasm && wasm-pack build --target web --out-dir pkg",
+    "prepublishOnly": "yarn build:wasm && yarn build"
   },
   "devDependencies": {
     "@types/jest": "^30.0.0",
