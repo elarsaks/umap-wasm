@@ -7,7 +7,10 @@
     "email": "andycoenen@google.com"
   },
   "license": "MIT",
-  "repository": "elarsaks/umap-wasm",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/elarsaks/umap-wasm.git"
+  },
   "main": "lib/umap-js.js",
   "module": "lib/umap-js.js",
   "unpkg": "lib/umap-js.min.js",
@@ -49,6 +52,6 @@
     "ml-levenberg-marquardt": "^2.1.1"
   },
   "publishConfig": {
-    "registry": "https://wombat-dressing-room.appspot.com"
+    "registry": "https://registry.npmjs.org/"
   }
 }
