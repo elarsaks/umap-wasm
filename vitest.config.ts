@@ -9,6 +9,7 @@ export default defineConfig({
       'node_modules',
       'dist',
       'test/archived',
+      'test/**/*.playwright.test.ts', // Exclude Playwright tests from Vitest
       'e2e',
     ],
     coverage: {
@@ -27,5 +28,8 @@ export default defineConfig({
   },
   resolve: {
     extensions: ['.ts', '.js'],
+  },
+  esbuild: {
+    target: 'node14',
   },
 });

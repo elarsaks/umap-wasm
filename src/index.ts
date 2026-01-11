@@ -18,3 +18,4 @@
  */
 
 export { UMAP, UMAPParameters } from './umap';
+export { initWasm, isWasmAvailable } from './wasmBridge';
