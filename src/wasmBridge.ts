@@ -346,3 +346,102 @@ export function wasmSparseMatrixGetAll(matrix: WasmSparseMatrix): { value: numbe
   
   return entries;
 }
+
+// ============================================================================
+// NN-Descent WASM Functions
+// ============================================================================
+
+/**
+ * Run nearest neighbor descent using WASM.
+ * 
+ * @param data - Input data matrix
+ * @param leafArray - Leaf array from RP-trees (for initialization)
+ * @param nNeighbors - Number of neighbors to find
+ * @param nIters - Number of iterations
+ * @param maxCandidates - Maximum number of candidates per iteration
+ * @param delta - Early stopping threshold
+ * @param rho - Sampling rate for candidates
+ * @param rpTreeInit - Whether to use RP-tree initialization
+ * @param distanceMetric - Distance metric ('euclidean' or 'cosine')
+ * @param seed - Random seed
+ * @returns The nearest neighbor graph as [indices, distances, flags]
+ */
+export function nnDescentWasm(
+  data: number[][],
+  leafArray: number[][],
+  nNeighbors: number,
+  nIters: number = 10,
+  maxCandidates: number = 50,
+  delta: number = 0.001,
+  rho: number = 0.5,
+  rpTreeInit: boolean = true,
+  distanceMetric: string = 'euclidean',
+  seed: number = 42
+): number[][][] {
+  if (!wasmModule) throw new Error('WASM module not initialized');
+  
+  const nSamples = data.length;
+  const dim = data[0].length;
+  
+  // Flatten data to row-major format
+  const flatData = new Float64Array(nSamples * dim);
+  for (let i = 0; i < nSamples; i++) {
+    for (let j = 0; j < dim; j++) {
+      flatData[i * dim + j] = data[i][j];
+    }
+  }
+  
+  // Flatten leaf array
+  const nLeaves = leafArray.length;
+  const leafSize = nLeaves > 0 ? leafArray[0].length : 0;
+  const flatLeafArray = new Int32Array(nLeaves * leafSize);
+  for (let i = 0; i < nLeaves; i++) {
+    for (let j = 0; j < leafSize; j++) {
+      flatLeafArray[i * leafSize + j] = leafArray[i][j];
+    }
+  }
+  
+  // Call WASM function
+  const result = wasmModule.nn_descent(
+    flatData,
+    nSamples,
+    dim,
+    flatLeafArray,
+    nLeaves,
+    leafSize,
+    nNeighbors,
+    nIters,
+    maxCandidates,
+    delta,
+    rho,
+    rpTreeInit,
+    distanceMetric,
+    BigInt(seed)
+  );
+  
+  // Unflatten result: [indices, distances, flags]
+  const indices: number[][] = [];
+  const distances: number[][] = [];
+  const flags: number[][] = [];
+  
+  const offset1 = nSamples * nNeighbors;
+  const offset2 = 2 * nSamples * nNeighbors;
+  
+  for (let i = 0; i < nSamples; i++) {
+    const rowIndices: number[] = [];
+    const rowDistances: number[] = [];
+    const rowFlags: number[] = [];
+    
+    for (let j = 0; j < nNeighbors; j++) {
+      rowIndices.push(result[i * nNeighbors + j]);
+      rowDistances.push(result[offset1 + i * nNeighbors + j]);
+      rowFlags.push(result[offset2 + i * nNeighbors + j]);
+    }
+    
+    indices.push(rowIndices);
+    distances.push(rowDistances);
+    flags.push(rowFlags);
+  }
+  
+  return [indices, distances, flags];
+}

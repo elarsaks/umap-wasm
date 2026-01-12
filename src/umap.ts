@@ -91,6 +91,11 @@ export interface UMAPParameters {
    */
   useWasmDistance?: boolean;
   /**
+   * Whether to use the Rust/WASM-implemented NN-Descent algorithm when
+   * available. Defaults to false.
+   */
+  useWasmNNDescent?: boolean;
+  /**
    * The initial learning rate for the embedding optimization.
    */
   learningRate?: number;
@@ -239,6 +244,8 @@ export class UMAP {
   private distanceFn: DistanceFn = euclidean;
   /** Use wasm distance functions when available and enabled via params */
   private useWasmDistance = false;
+  /** Use wasm NN-Descent implementation when available and enabled via params */
+  private useWasmNNDescent = false;
   /** Use wasm sparse-matrix operations when available and enabled via params */
   private useWasmMatrix = false;
   /** Use wasm tree construction when available and enabled via params */
@@ -272,6 +279,7 @@ export class UMAP {
 
     setParam('distanceFn');
     setParam('useWasmDistance');
+    setParam('useWasmNNDescent');
     setParam('useWasmMatrix');
     setParam('useWasmTree');
     setParam('learningRate');
@@ -605,7 +613,7 @@ export class UMAP {
   private nearestNeighbors(X: Vectors) {
     const { distanceFn, nNeighbors } = this;
     const log2 = (n: number) => Math.log(n) / Math.log(2);
-    const metricNNDescent = nnDescent.makeNNDescent(distanceFn, this.random);
+    const metricNNDescent = nnDescent.makeNNDescent(distanceFn, this.random, this.useWasmNNDescent);
 
     // Handle python3 rounding down from 0.5 discrpancy
     const round = (n: number) => {
