@@ -173,13 +173,13 @@ The UMAP constructor accepts a `UMAPParameters` object with the following option
 
 The project exposes configuration flags to selectively enable WASM-accelerated components. The table below maps the high-level operations to the available configuration flags and current implementation status.
 
-| Component | Config Flag | Status | Notes |
-|-----------|-------------|--------|-------|
-| Distance computations | `useWasmDistance` | Implemented | WASM provides `euclidean` and `cosine` implementations (via `wasmBridge`). These are implemented in `distances.rs`.
-| Nearest neighbour search (random projection trees) | `useWasmTree` | Implemented | WASM-accelerated random projection tree construction is available and can be enabled with `useWasmTree` (see `tree.rs`).
-| Matrix operations in optimization loops | `useWasmMatrix` | Implemented | Sparse-matrix operations (transpose, element-wise ops, CSR conversion, normalization) are implemented in WASM (see `matrix.rs`).
-| Nearest‑neighbour graph refinement (NN‑Descent) | `useWasmNNDescent` | Implemented | NN‑Descent (graph refinement / approximate nearest neighbours) is implemented in WASM (see `nn_descent.rs`). currently uses the JS implementation; WASM integration is planned.
-| Gradient‑descent layout optimisation | — | TODO | The optimization loop runs in JS; a WASM-accelerated optimizer is under investigation.
+| Component | Config Flag | Notes |
+|-----------|-------------|-------|
+| Distance computations | `useWasmDistance` | WASM `euclidean` and `cosine` implementations. See `distances.rs`. |
+| Nearest neighbour search (RP trees) | `useWasmTree` | WASM-accelerated random projection tree construction. See `tree.rs`. |
+| Matrix operations | `useWasmMatrix` | Sparse-matrix operations (transpose, element-wise ops, CSR, normalization). See `matrix.rs`. |
+| NN‑Descent graph refinement | `useWasmNNDescent` |  **TODO** - Approximate nearest-neighbour graph construction/refinement. See `nn_descent.rs`. |
+| Gradient‑descent layout optimisation | — | **TODO** — optimization loop currently runs in JS. |
 
 
 ### Example with Custom Parameters

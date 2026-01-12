@@ -152,6 +152,33 @@ export function cosine(x: Float64Array, y: Float64Array): number;
 export function euclidean(x: Float64Array, y: Float64Array): number;
 
 /**
+ * Nearest Neighbor Descent implementation in Rust/WASM.
+ * 
+ * This function performs approximate nearest neighbor graph construction
+ * using the NN-Descent algorithm.
+ * 
+ * # Arguments
+ * * `data_flat` - Flattened data matrix (row-major)
+ * * `n_samples` - Number of data points
+ * * `dim` - Dimensionality of each point
+ * * `leaf_array_flat` - Flattened leaf array from RP-trees (for initialization)
+ * * `n_leaves` - Number of leaves in the RP-tree forest
+ * * `leaf_size` - Size of each leaf
+ * * `n_neighbors` - Number of neighbors to find
+ * * `n_iters` - Number of NN-Descent iterations
+ * * `max_candidates` - Maximum number of candidates to consider
+ * * `delta` - Early stopping threshold
+ * * `rho` - Sampling rate for candidates
+ * * `rp_tree_init` - Whether to use RP-tree initialization
+ * * `distance_metric` - Distance metric to use ("euclidean" or "cosine")
+ * * `seed` - Random seed
+ * 
+ * # Returns
+ * A flattened array containing [distances, indices, flags] for the k-NN graph
+ */
+export function nn_descent(data_flat: Float64Array, n_samples: number, dim: number, leaf_array_flat: Int32Array, n_leaves: number, leaf_size: number, n_neighbors: number, n_iters: number, max_candidates: number, delta: number, rho: number, rp_tree_init: boolean, distance_metric: string, seed: bigint): Float64Array;
+
+/**
  * Search a flattened tree to find the leaf containing the query point.
  * 
  * # Arguments
