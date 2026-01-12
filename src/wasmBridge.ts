@@ -16,11 +16,16 @@ export async function initWasm() {
         const nodePath = ['..', 'wasm', 'pkg', 'node', 'umap_wasm_core.js'].join('/');
         mod = await import(nodePath);
       } else {
-        // Browser: construct full URL and use native import
-        // Using Function constructor to bypass webpack's transformation of import()
-        const origin = typeof window !== 'undefined' && window.location ? window.location.origin : '';
-        const wasmPath = `${origin}/wasm/pkg/web/umap_wasm_core.js`;
-        mod = await new Function('p', 'return import(p)')(wasmPath);
+        // Browser: try relative path first (for bundlers), fall back to absolute URL (for standalone)
+        try {
+          const webPath = ['..', 'wasm', 'pkg', 'web', 'umap_wasm_core.js'].join('/');
+          mod = await import(webPath);
+        } catch (e) {
+          // Fall back to absolute URL for standalone usage
+          const origin = typeof window !== 'undefined' && window.location ? window.location.origin : '';
+          const wasmPath = `${origin}/wasm/pkg/web/umap_wasm_core.js`;
+          mod = await new Function('p', 'return import(p)')(wasmPath);
+        }
       }
       
       // wasm-pack exports a default init function that must be called
