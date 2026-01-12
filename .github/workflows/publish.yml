@@ -35,8 +35,14 @@ jobs:
       - name: Install dependencies
         run: yarn install --frozen-lockfile
 
+      - name: Build WASM
+        run: yarn build:wasm
+
       - name: Build
         run: yarn build
+
+      - name: Remove wasm-pack .gitignore files
+        run: rm -f wasm/pkg/web/.gitignore wasm/pkg/node/.gitignore
 
       - name: Publish to npm
         run: npm publish --access public
