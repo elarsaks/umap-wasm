@@ -22,8 +22,12 @@ export async function initWasm() {
           mod = await import(webPath);
         } catch (e) {
           // Fall back to absolute URL for standalone usage
+          // Extract base path from current script location or use root
           const origin = typeof window !== 'undefined' && window.location ? window.location.origin : '';
-          const wasmPath = `${origin}/wasm/pkg/web/umap_wasm_core.js`;
+          const pathname = typeof window !== 'undefined' && window.location ? window.location.pathname : '';
+          // Get base path (everything before the last segment)
+          const basePath = pathname.substring(0, pathname.lastIndexOf('/'));
+          const wasmPath = `${origin}${basePath}/wasm/pkg/web/umap_wasm_core.js`;
           mod = await new Function('p', 'return import(p)')(wasmPath);
         }
       }
