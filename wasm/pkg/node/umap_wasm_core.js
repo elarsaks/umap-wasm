@@ -490,6 +490,63 @@ function euclidean(x, y) {
 exports.euclidean = euclidean;
 
 /**
+ * Nearest Neighbor Descent implementation in Rust/WASM.
+ *
+ * This function performs approximate nearest neighbor graph construction
+ * using the NN-Descent algorithm.
+ *
+ * # Arguments
+ * * `data_flat` - Flattened data matrix (row-major)
+ * * `n_samples` - Number of data points
+ * * `dim` - Dimensionality of each point
+ * * `leaf_array_flat` - Flattened leaf array from RP-trees (for initialization)
+ * * `n_leaves` - Number of leaves in the RP-tree forest
+ * * `leaf_size` - Size of each leaf
+ * * `n_neighbors` - Number of neighbors to find
+ * * `n_iters` - Number of NN-Descent iterations
+ * * `max_candidates` - Maximum number of candidates to consider
+ * * `delta` - Early stopping threshold
+ * * `rho` - Sampling rate for candidates
+ * * `rp_tree_init` - Whether to use RP-tree initialization
+ * * `distance_metric` - Distance metric to use ("euclidean" or "cosine")
+ * * `seed` - Random seed
+ *
+ * # Returns
+ * A flattened array containing [distances, indices, flags] for the k-NN graph
+ * @param {Float64Array} data_flat
+ * @param {number} n_samples
+ * @param {number} dim
+ * @param {Int32Array} leaf_array_flat
+ * @param {number} n_leaves
+ * @param {number} leaf_size
+ * @param {number} n_neighbors
+ * @param {number} n_iters
+ * @param {number} max_candidates
+ * @param {number} delta
+ * @param {number} rho
+ * @param {boolean} rp_tree_init
+ * @param {string} distance_metric
+ * @param {bigint} seed
+ * @returns {Float64Array}
+ */
+function nn_descent(data_flat, n_samples, dim, leaf_array_flat, n_leaves, leaf_size, n_neighbors, n_iters, max_candidates, delta, rho, rp_tree_init, distance_metric, seed) {
+    const ptr0 = passArrayF64ToWasm0(data_flat, wasm.__wbindgen_malloc);
+    const len0 = WASM_VECTOR_LEN;
+    const ptr1 = passArray32ToWasm0(leaf_array_flat, wasm.__wbindgen_malloc);
+    const len1 = WASM_VECTOR_LEN;
+    const ptr2 = passStringToWasm0(distance_metric, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
+    const len2 = WASM_VECTOR_LEN;
+    const ret = wasm.nn_descent(ptr0, len0, n_samples, dim, ptr1, len1, n_leaves, leaf_size, n_neighbors, n_iters, max_candidates, delta, rho, rp_tree_init, ptr2, len2, seed);
+    if (ret[3]) {
+        throw takeFromExternrefTable0(ret[2]);
+    }
+    var v4 = getArrayF64FromWasm0(ret[0], ret[1]).slice();
+    wasm.__wbindgen_free(ret[0], ret[1] * 8, 8);
+    return v4;
+}
+exports.nn_descent = nn_descent;
+
+/**
  * Search a flattened tree to find the leaf containing the query point.
  *
  * # Arguments

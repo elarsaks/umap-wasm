@@ -12,6 +12,7 @@ export const flattree_hyperplanes: (a: number) => any;
 export const flattree_indices: (a: number) => [number, number];
 export const flattree_n_nodes: (a: number) => number;
 export const flattree_offsets: (a: number) => any;
+export const nn_descent: (a: number, b: number, c: number, d: number, e: number, f: number, g: number, h: number, i: number, j: number, k: number, l: number, m: number, n: number, o: number, p: number, q: bigint) => [number, number, number, number];
 export const search_flat_tree: (a: number, b: number, c: number, d: bigint) => [number, number];
 export const sparse_add: (a: number, b: number) => number;
 export const sparse_eliminate_zeros: (a: number) => number;
@@ -39,7 +40,7 @@ export const wasmsparsematrix_set: (a: number, b: number, c: number, d: number) 
 export const wasmsparsematrix_to_array: (a: number) => any;
 export const __wbindgen_externrefs: WebAssembly.Table;
 export const __wbindgen_malloc: (a: number, b: number) => number;
-export const __wbindgen_free: (a: number, b: number, c: number) => void;
 export const __wbindgen_realloc: (a: number, b: number, c: number, d: number) => number;
 export const __externref_table_dealloc: (a: number) => void;
+export const __wbindgen_free: (a: number, b: number, c: number) => void;
 export const __wbindgen_start: () => void;
