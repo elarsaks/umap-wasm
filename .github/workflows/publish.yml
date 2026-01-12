@@ -44,6 +44,14 @@ jobs:
       - name: Remove wasm-pack .gitignore files
         run: rm -f wasm/pkg/web/.gitignore wasm/pkg/node/.gitignore
 
+      - name: Verify wasm files are present
+        run: |
+          echo "Checking for WASM files..."
+          ls -la wasm/pkg/web/
+          ls -la wasm/pkg/node/
+          echo "Testing npm pack..."
+          npm pack --dry-run | grep -E "(total files|wasm)"
+
       - name: Publish to npm
         run: npm publish --access public
         env:
