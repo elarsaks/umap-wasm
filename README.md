@@ -30,7 +30,7 @@ This implementation builds upon the PAIR-code `umap-js` library with strategic W
 - Distance computations (implemented in Rust: `distances.rs`)
 - Nearest neighbour search (random projection trees) (implemented in Rust: `tree.rs`)
 - Matrix operations in optimization loops (implemented in Rust: `matrix.rs`)
-- Nearest‑neighbour graph refinement (NN‑Descent) *(TODO — JS implementation currently used)*
+- Nearest‑neighbour graph refinement (NN‑Descent) (implemented in Rust: `nn_descent.rs`)
 - Gradient‑descent layout optimisation *(TODO — optimizer currently runs in JS)*
 
 ### Key Features
@@ -163,6 +163,7 @@ The UMAP constructor accepts a `UMAPParameters` object with the following option
 | `random` | `() => number` | `Math.random` | PRNG for reproducibility |
 | `distanceFn` | `DistanceFn` | `euclidean` | Distance metric for input space |
 | `useWasmDistance` | `boolean` | `false` | Whether to use Rust/WASM distance functions when available |
+| `useWasmNNDescent` | `boolean` | `false` | Whether to use Rust/WASM NN-Descent implementation when available |
 | `useWasmTree` | `boolean` | `false` | Whether to use Rust/WASM random projection tree construction when available |
 | `useWasmMatrix` | `boolean` | `false` | Whether to use Rust/WASM sparse matrix operations when available |
 
@@ -175,7 +176,7 @@ The project exposes configuration flags to selectively enable WASM-accelerated c
 | Distance computations | `useWasmDistance` | Implemented | WASM provides `euclidean` and `cosine` implementations (via `wasmBridge`). These are implemented in `distances.rs`.
 | Nearest neighbour search (random projection trees) | `useWasmTree` | Implemented | WASM-accelerated random projection tree construction is available and can be enabled with `useWasmTree` (see `tree.rs`).
 | Matrix operations in optimization loops | `useWasmMatrix` | Implemented | Sparse-matrix operations (transpose, element-wise ops, CSR conversion, normalization) are implemented in WASM (see `matrix.rs`).
-| Nearest‑neighbour graph refinement (NN‑Descent) | — | TODO | NN‑Descent (graph refinement / approximate nearest neighbours) currently uses the JS implementation; WASM integration is planned.
+| Nearest‑neighbour graph refinement (NN‑Descent) | `useWasmNNDescent` | Implemented | NN‑Descent (graph refinement / approximate nearest neighbours) is implemented in WASM (see `nn_descent.rs`). currently uses the JS implementation; WASM integration is planned.
 | Gradient‑descent layout optimisation | — | TODO | The optimization loop runs in JS; a WASM-accelerated optimizer is under investigation.
 
 

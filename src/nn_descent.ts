@@ -61,12 +61,22 @@ import * as heap from './heap.js';
 import * as matrix from './matrix.js';
 import * as tree from './tree.js';
 import * as utils from './utils.js';
+import * as wasmBridge from './wasmBridge.js';
 import { RandomFn, Vectors, DistanceFn } from './umap.js';
 
 /**
- * Create a version of nearest neighbor descent.
+ * Create a version of nearest neighbor descent with optional WASM acceleration.
+ * 
+ * @param distanceFn - Distance function for comparing vectors
+ * @param random - Random number generator
+ * @param useWasm - Whether to use WASM implementation when available
+ * @returns The NN-Descent function
  */
-export function makeNNDescent(distanceFn: DistanceFn, random: RandomFn) {
+export function makeNNDescent(
+  distanceFn: DistanceFn,
+  random: RandomFn,
+  useWasm: boolean = false
+) {
   return function nNDescent(
     data: Vectors,
     leafArray: Vectors,
@@ -77,6 +87,38 @@ export function makeNNDescent(distanceFn: DistanceFn, random: RandomFn) {
     rho = 0.5,
     rpTreeInit = true
   ) {
+    // Use WASM implementation if available and enabled
+    if (useWasm) {
+      if (!wasmBridge.isWasmAvailable()) {
+        throw new Error('WASM NN-Descent requested but WASM module is not available. Initialize WASM with initWasm() first.');
+      }
+      
+      // Determine distance metric name for WASM
+      const distanceMetric = distanceFn.name === 'cosine' ? 'cosine' : 'euclidean';
+      
+      // Generate a seed from the random function
+      const seed = Math.floor(random() * 0xFFFFFFFF);
+      
+      const result = wasmBridge.nnDescentWasm(
+        data,
+        leafArray,
+        nNeighbors,
+        nIters,
+        maxCandidates,
+        delta,
+        rho,
+        rpTreeInit,
+        distanceMetric,
+        seed
+      );
+      
+      return {
+        indices: result[0],
+        weights: result[1],
+      };
+    }
+    
+    // JavaScript implementation (original code)
     const nVertices = data.length;
     const currentGraph = heap.makeHeap(data.length, nNeighbors);
 
