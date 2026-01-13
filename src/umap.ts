@@ -96,6 +96,11 @@ export interface UMAPParameters {
    */
   useWasmNNDescent?: boolean;
   /**
+   * Whether to use the Rust/WASM-implemented optimizer for gradient descent
+   * when available. Defaults to false.
+   */
+  useWasmOptimizer?: boolean;
+  /**
    * The initial learning rate for the embedding optimization.
    */
   learningRate?: number;
@@ -248,6 +253,8 @@ export class UMAP {
   private useWasmNNDescent = false;
   /** Use wasm sparse-matrix operations when available and enabled via params */
   private useWasmMatrix = false;
+  /** Use wasm optimizer for gradient descent when available and enabled via params */
+  private useWasmOptimizer = false;
   /** Use wasm tree construction when available and enabled via params */
   private useWasmTree = false;
 
@@ -271,6 +278,8 @@ export class UMAP {
   // Projected embedding
   private embedding: number[][] = [];
   private optimizationState = new OptimizationState();
+  private wasmOptimizerState: wasmBridge.WasmOptimizerState | null = null;
+  private rngState = BigInt(Math.floor(Math.random() * 0xFFFFFFFF));
 
   constructor(params: UMAPParameters = {}) {
     const setParam = (key: string) => {
@@ -282,6 +291,7 @@ export class UMAP {
     setParam('useWasmNNDescent');
     setParam('useWasmMatrix');
     setParam('useWasmTree');
+    setParam('useWasmOptimizer');
     setParam('learningRate');
     setParam('localConnectivity');
     setParam('minDist');
@@ -983,6 +993,27 @@ export class UMAP {
       gamma: repulsionStrength,
       dim,
     });
+
+    // Initialize WASM optimizer if enabled
+    if (this.useWasmOptimizer && wasmBridge.isWasmAvailable()) {
+      const { head, tail, nEpochs, nVertices, a, b } = this.optimizationState;
+      this.wasmOptimizerState = wasmBridge.createOptimizerState(
+        head,
+        tail,
+        headEmbedding,
+        tailEmbedding,
+        epochsPerSample,
+        epochsPerNegativeSample,
+        moveOther,
+        learningRate,
+        repulsionStrength,
+        a,
+        b,
+        dim,
+        nEpochs,
+        nVertices
+      );
+    }
   }
 
   /**
@@ -1022,6 +1053,34 @@ export class UMAP {
    * coming from negative sampling similar to word2vec).
    */
   private optimizeLayoutStep(n: number) {
+    // Use WASM optimizer if available and enabled
+    if (this.useWasmOptimizer && this.wasmOptimizerState) {
+      const flatEmbedding = wasmBridge.optimizeLayoutStepWasm(
+        this.wasmOptimizerState,
+        this.rngState
+      );
+      
+      // Update RNG state (simple LCG advancement)
+      const A = BigInt('6364136223846793005');
+      const C = BigInt('1442695040888963407');
+      this.rngState = (this.rngState * A + C) & BigInt('0xFFFFFFFFFFFFFFFF');
+      
+      // Unflatten the embedding
+      const { dim } = this.optimizationState;
+      const { headEmbedding } = this.optimizationState;
+      const nPoints = headEmbedding.length;
+      
+      for (let i = 0; i < nPoints; i++) {
+        for (let j = 0; j < dim; j++) {
+          headEmbedding[i][j] = flatEmbedding[i * dim + j];
+        }
+      }
+      
+      this.optimizationState.currentEpoch += 1;
+      return headEmbedding;
+    }
+
+    // JavaScript implementation
     const { optimizationState } = this;
     const {
       head,
