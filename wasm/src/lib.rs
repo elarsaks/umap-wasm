@@ -5,6 +5,7 @@ static ALLOC: wee_alloc::WeeAlloc = wee_alloc::WeeAlloc::INIT;
 mod distances;
 mod matrix;
 mod nn_descent;
+mod optimizer;
 mod tree;
 
 pub use distances::{cosine, euclidean, version};
@@ -14,4 +15,5 @@ pub use matrix::{
     sparse_transpose, WasmSparseMatrix,
 };
 pub use nn_descent::nn_descent;
+pub use optimizer::{optimize_layout_batch, optimize_layout_step, OptimizerState};
 pub use tree::{build_rp_tree, search_flat_tree, FlatTree};

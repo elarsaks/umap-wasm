@@ -458,3 +458,125 @@ export function nnDescentWasm(
   
   return [indices, distances, flags];
 }
+
+// ============================================================================
+// Optimizer WASM Functions
+// ============================================================================
+
+export interface WasmOptimizerState {
+  head_embedding: Float64Array;
+  current_epoch: number;
+  n_epochs: number;
+  free(): void;
+}
+
+/**
+ * Create a WASM optimizer state for gradient descent optimization.
+ * 
+ * @param head - Head vertices of edges
+ * @param tail - Tail vertices of edges
+ * @param headEmbedding - Flattened head embedding (row-major)
+ * @param tailEmbedding - Flattened tail embedding (row-major)
+ * @param epochsPerSample - Epochs per sample for each edge
+ * @param epochsPerNegativeSample - Epochs per negative sample for each edge
+ * @param moveOther - Whether to move tail vertices
+ * @param initialAlpha - Initial learning rate
+ * @param gamma - Repulsion strength
+ * @param a - Curve parameter a
+ * @param b - Curve parameter b
+ * @param dim - Embedding dimensionality
+ * @param nEpochs - Total number of epochs
+ * @param nVertices - Total number of vertices
+ * @returns A WASM OptimizerState object
+ */
+export function createOptimizerState(
+  head: number[],
+  tail: number[],
+  headEmbedding: number[][],
+  tailEmbedding: number[][],
+  epochsPerSample: number[],
+  epochsPerNegativeSample: number[],
+  moveOther: boolean,
+  initialAlpha: number,
+  gamma: number,
+  a: number,
+  b: number,
+  dim: number,
+  nEpochs: number,
+  nVertices: number
+): WasmOptimizerState {
+  if (!wasmModule) throw new Error('WASM module not initialized');
+  
+  // Flatten embeddings to row-major format
+  const flatHeadEmbedding = new Float64Array(headEmbedding.length * dim);
+  const flatTailEmbedding = new Float64Array(tailEmbedding.length * dim);
+  
+  for (let i = 0; i < headEmbedding.length; i++) {
+    for (let j = 0; j < dim; j++) {
+      flatHeadEmbedding[i * dim + j] = headEmbedding[i][j];
+    }
+  }
+  
+  for (let i = 0; i < tailEmbedding.length; i++) {
+    for (let j = 0; j < dim; j++) {
+      flatTailEmbedding[i * dim + j] = tailEmbedding[i][j];
+    }
+  }
+  
+  // Create typed arrays for WASM
+  const headArray = new Uint32Array(head);
+  const tailArray = new Uint32Array(tail);
+  const epochsPerSampleArray = new Float64Array(epochsPerSample);
+  const epochsPerNegativeSampleArray = new Float64Array(epochsPerNegativeSample);
+  
+  return new wasmModule.OptimizerState(
+    headArray,
+    tailArray,
+    flatHeadEmbedding,
+    flatTailEmbedding,
+    epochsPerSampleArray,
+    epochsPerNegativeSampleArray,
+    moveOther,
+    initialAlpha,
+    gamma,
+    a,
+    b,
+    dim,
+    nEpochs,
+    nVertices
+  );
+}
+
+/**
+ * Perform a single optimization step using WASM.
+ * 
+ * @param state - The WASM optimizer state
+ * @param rngSeed - Random number generator seed
+ * @returns Updated embedding as a flat Float64Array
+ */
+export function optimizeLayoutStepWasm(
+  state: WasmOptimizerState,
+  rngSeed: bigint
+): Float64Array {
+  if (!wasmModule) throw new Error('WASM module not initialized');
+  
+  return wasmModule.optimize_layout_step(state, rngSeed);
+}
+
+/**
+ * Perform multiple optimization steps in a batch using WASM.
+ * 
+ * @param state - The WASM optimizer state
+ * @param rngSeed - Random number generator seed
+ * @param nSteps - Number of steps to perform
+ * @returns Updated embedding as a flat Float64Array
+ */
+export function optimizeLayoutBatchWasm(
+  state: WasmOptimizerState,
+  rngSeed: bigint,
+  nSteps: number
+): Float64Array {
+  if (!wasmModule) throw new Error('WASM module not initialized');
+  
+  return wasmModule.optimize_layout_batch(state, rngSeed, nSteps);
+}

@@ -33,7 +33,7 @@ This implementation builds upon the PAIR-code `umap-js` library with strategic W
 - Nearest neighbour search (random projection trees) (implemented in Rust: `tree.rs`)
 - Matrix operations in optimization loops (implemented in Rust: `matrix.rs`)
 - Nearest‑neighbour graph refinement (NN‑Descent) (implemented in Rust: `nn_descent.rs`)
-- Gradient‑descent layout optimisation *(TODO — optimizer currently runs in JS)*
+- Gradient‑descent layout optimisation (implemented in Rust: `optimizer.rs`)
 
 ### Key Features
 
@@ -168,6 +168,7 @@ The UMAP constructor accepts a `UMAPParameters` object with the following option
 | `useWasmNNDescent` | `boolean` | `false` | Whether to use Rust/WASM NN-Descent implementation when available |
 | `useWasmTree` | `boolean` | `false` | Whether to use Rust/WASM random projection tree construction when available |
 | `useWasmMatrix` | `boolean` | `false` | Whether to use Rust/WASM sparse matrix operations when available |
+| `useWasmOptimizer` | `boolean` | `false` | Whether to use Rust/WASM gradient descent optimizer when available |
 
 ### WASM Components & Status
 
@@ -178,8 +179,8 @@ The project exposes configuration flags to selectively enable WASM-accelerated c
 | Distance computations | `useWasmDistance` | WASM `euclidean` and `cosine` implementations. See `distances.rs`. |
 | Nearest neighbour search (RP trees) | `useWasmTree` | WASM-accelerated random projection tree construction. See `tree.rs`. |
 | Matrix operations | `useWasmMatrix` | Sparse-matrix operations (transpose, element-wise ops, CSR, normalization). See `matrix.rs`. |
-| NN‑Descent graph refinement | `useWasmNNDescent` |  **TODO** - Approximate nearest-neighbour graph construction/refinement. See `nn_descent.rs`. |
-| Gradient‑descent layout optimisation | — | **TODO** — optimization loop currently runs in JS. |
+| NN‑Descent graph refinement | `useWasmNNDescent` | Approximate nearest-neighbour graph construction/refinement. See `nn_descent.rs`. |
+| Gradient‑descent layout optimisation | `useWasmOptimizer` | WASM-accelerated stochastic gradient descent for embedding optimization. See `optimizer.rs`. |
 
 
 ### Example with Custom Parameters
