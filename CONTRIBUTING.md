@@ -1,19 +1,14 @@
 # How to Contribute
 
-We'd love to accept your patches and contributions to this project. There are
-just a few small guidelines you need to follow.
+We'd love to accept your patches and contributions to this project, which is
+part of a thesis effort. There are just a few small guidelines you need to
+follow.
 
-## Contributor License Agreement
+## License and attribution
 
-Contributions to this project must be accompanied by a Contributor License
-Agreement. You (or your employer) retain the copyright to your contribution;
-this simply gives us permission to use and redistribute your contributions as
-part of the project. Head over to <https://cla.developers.google.com/> to see
-your current agreements on file or to sign a new one.
-
-You generally only need to submit a CLA once, so if you've already submitted one
-(even if it was for a different project), you probably don't need to do it
-again.
+By submitting a contribution, you agree that it can be redistributed under the
+repository's license. Please include appropriate attribution in commit messages
+when relevant.
 
 ## Code reviews
 
@@ -24,6 +19,5 @@ information on using pull requests.
 
 ## Community Guidelines
 
-This project follows [Google's Open Source Community
-Guidelines](https://opensource.google.com/conduct/).
-
+Please be respectful and constructive. We follow the
+[GitHub Community Guidelines](https://docs.github.com/en/site-policy/github-terms/github-community-guidelines).
