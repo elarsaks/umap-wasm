@@ -24,7 +24,7 @@ export async function initWasm() {
           // Fall back to absolute URL for standalone usage
           const origin = typeof window !== 'undefined' && window.location ? window.location.origin : '';
           const wasmPath = `${origin}/wasm/pkg/web/umap_wasm_core.js`;
-          mod = await import(/* @vite-ignore */ wasmPath);
+          mod = await import(/* webpackIgnore: true */ /* @vite-ignore */ wasmPath);
         }
       }
       
