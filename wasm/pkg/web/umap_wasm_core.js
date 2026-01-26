@@ -1014,8 +1014,11 @@ function __wbg_get_imports() {
         return ret;
     };
     imports.wbg.__wbg_new_no_args_cb138f77cf6151ee = function(arg0, arg1) {
-        const ret = new Function(getStringFromWasm0(arg0, arg1));
-        return ret;
+        const body = getStringFromWasm0(arg0, arg1);
+        if (body === "return this" || body === "return globalThis") {
+            return function() { return globalThis; };
+        }
+        throw new Error("CSP blocked Function constructor for: " + body);
     };
     imports.wbg.__wbg_startWorkers_2329d931beb7bef4 = function(arg0, arg1, arg2) {
         const ret = startWorkers(arg0, arg1, wbg_rayon_PoolBuilder.__wrap(arg2));
