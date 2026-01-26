@@ -172,10 +172,6 @@ export function cosine(x: Float64Array, y: Float64Array): number;
  */
 export function euclidean(x: Float64Array, y: Float64Array): number;
 
-export function initThreadPool(num_threads: number): Promise<any>;
-
-export function init_threads(n_threads: number): Promise<any>;
-
 /**
  * Nearest Neighbor Descent implementation in Rust/WASM.
  * 
@@ -305,14 +301,3 @@ export function sparse_transpose(matrix: WasmSparseMatrix): WasmSparseMatrix;
  * Simple helper to ensure the wasm is loaded and working.
  */
 export function version(): string;
-
-export class wbg_rayon_PoolBuilder {
-  private constructor();
-  free(): void;
-  [Symbol.dispose](): void;
-  numThreads(): number;
-  build(): void;
-  receiver(): number;
-}
-
-export function wbg_rayon_start_worker(receiver: number): void;
