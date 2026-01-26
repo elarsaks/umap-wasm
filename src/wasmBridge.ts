@@ -19,12 +19,12 @@ export async function initWasm() {
         // Browser: try relative path first (for bundlers), fall back to absolute URL (for standalone)
         try {
           const webPath = ['..', 'wasm', 'pkg', 'web', 'umap_wasm_core.js'].join('/');
-          mod = await import(webPath);
+          mod = await import(/* webpackIgnore: true */ webPath);
         } catch (e) {
           // Fall back to absolute URL for standalone usage
           const origin = typeof window !== 'undefined' && window.location ? window.location.origin : '';
           const wasmPath = `${origin}/wasm/pkg/web/umap_wasm_core.js`;
-          mod = await import(/* webpackIgnore: true */ /* @vite-ignore */ wasmPath);
+          mod = await import(/* webpackIgnore: true */ wasmPath);
         }
       }
       
