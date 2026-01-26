@@ -21,6 +21,7 @@ wasm-bindgen-rayon = { version = "1.2", optional = true }
 default = []
 allocator = ["wee_alloc"]
 threads = ["rayon", "wasm-bindgen-rayon"]
+threads-no-bundler = ["threads", "wasm-bindgen-rayon/no-bundler"]
 
 [profile.release]
 lto = true

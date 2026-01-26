@@ -49,6 +49,7 @@ export const wasmsparsematrix_to_array: (a: number) => any;
 export const __wbg_wbg_rayon_poolbuilder_free: (a: number, b: number) => void;
 export const initThreadPool: (a: number) => any;
 export const wbg_rayon_poolbuilder_build: (a: number) => void;
+export const wbg_rayon_poolbuilder_mainJS: (a: number) => any;
 export const wbg_rayon_poolbuilder_numThreads: (a: number) => number;
 export const wbg_rayon_poolbuilder_receiver: (a: number) => number;
 export const wbg_rayon_start_worker: (a: number) => void;
