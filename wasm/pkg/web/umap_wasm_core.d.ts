@@ -172,6 +172,10 @@ export function cosine(x: Float64Array, y: Float64Array): number;
  */
 export function euclidean(x: Float64Array, y: Float64Array): number;
 
+export function initThreadPool(num_threads: number): Promise<any>;
+
+export function init_threads(n_threads: number): Promise<any>;
+
 /**
  * Nearest Neighbor Descent implementation in Rust/WASM.
  * 
@@ -302,6 +306,17 @@ export function sparse_transpose(matrix: WasmSparseMatrix): WasmSparseMatrix;
  */
 export function version(): string;
 
+export class wbg_rayon_PoolBuilder {
+  private constructor();
+  free(): void;
+  [Symbol.dispose](): void;
+  numThreads(): number;
+  build(): void;
+  receiver(): number;
+}
+
+export function wbg_rayon_start_worker(receiver: number): void;
+
 export type InitInput = RequestInfo | URL | Response | BufferSource | WebAssembly.Module;
 
 export interface InitOutput {
@@ -318,6 +333,7 @@ export interface InitOutput {
   readonly flattree_indices: (a: number) => [number, number];
   readonly flattree_n_nodes: (a: number) => number;
   readonly flattree_offsets: (a: number) => any;
+  readonly init_threads: (a: number) => any;
   readonly nn_descent: (a: number, b: number, c: number, d: number, e: number, f: number, g: number, h: number, i: number, j: number, k: number, l: number, m: number, n: number, o: number, p: number, q: bigint) => [number, number, number, number];
   readonly optimize_layout_batch: (a: number, b: bigint, c: number) => [number, number];
   readonly optimize_layout_step: (a: number, b: bigint) => [number, number];
@@ -350,6 +366,14 @@ export interface InitOutput {
   readonly wasmsparsematrix_nnz: (a: number) => number;
   readonly wasmsparsematrix_set: (a: number, b: number, c: number, d: number) => [number, number];
   readonly wasmsparsematrix_to_array: (a: number) => any;
+  readonly __wbg_wbg_rayon_poolbuilder_free: (a: number, b: number) => void;
+  readonly initThreadPool: (a: number) => any;
+  readonly wbg_rayon_poolbuilder_build: (a: number) => void;
+  readonly wbg_rayon_poolbuilder_numThreads: (a: number) => number;
+  readonly wbg_rayon_poolbuilder_receiver: (a: number) => number;
+  readonly wbg_rayon_start_worker: (a: number) => void;
+  readonly __wbindgen_exn_store: (a: number) => void;
+  readonly __externref_table_alloc: () => number;
   readonly __wbindgen_externrefs: WebAssembly.Table;
   readonly __wbindgen_malloc: (a: number, b: number) => number;
   readonly __wbindgen_realloc: (a: number, b: number, c: number, d: number) => number;

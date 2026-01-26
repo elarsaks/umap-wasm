@@ -2,6 +2,14 @@
 let imports = {};
 imports['__wbindgen_placeholder__'] = module.exports;
 
+const { startWorkers } = require(String.raw`./snippets/wasm-bindgen-rayon-38edf6e439f6d70d/src/workerHelpers.js`);
+
+function addToExternrefTable0(obj) {
+    const idx = wasm.__externref_table_alloc();
+    wasm.__wbindgen_externrefs.set(idx, obj);
+    return idx;
+}
+
 function _assertClass(instance, klass) {
     if (!(instance instanceof klass)) {
         throw new Error(`expected instance of ${klass.name}`);
@@ -58,6 +66,19 @@ function getUint8ArrayMemory0() {
         cachedUint8ArrayMemory0 = new Uint8Array(wasm.memory.buffer);
     }
     return cachedUint8ArrayMemory0;
+}
+
+function handleError(f, args) {
+    try {
+        return f.apply(this, args);
+    } catch (e) {
+        const idx = addToExternrefTable0(e);
+        wasm.__wbindgen_exn_store(idx);
+    }
+}
+
+function isLikeNone(x) {
+    return x === undefined || x === null;
 }
 
 function passArray32ToWasm0(arg, malloc) {
@@ -149,6 +170,10 @@ const OptimizerStateFinalization = (typeof FinalizationRegistry === 'undefined')
 const WasmSparseMatrixFinalization = (typeof FinalizationRegistry === 'undefined')
     ? { register: () => {}, unregister: () => {} }
     : new FinalizationRegistry(ptr => wasm.__wbg_wasmsparsematrix_free(ptr >>> 0, 1));
+
+const wbg_rayon_PoolBuilderFinalization = (typeof FinalizationRegistry === 'undefined')
+    ? { register: () => {}, unregister: () => {} }
+    : new FinalizationRegistry(ptr => wasm.__wbg_wbg_rayon_poolbuilder_free(ptr >>> 0, 1));
 
 /**
  * A flattened random projection tree structure for efficient nearest neighbor search.
@@ -574,6 +599,26 @@ function euclidean(x, y) {
 exports.euclidean = euclidean;
 
 /**
+ * @param {number} num_threads
+ * @returns {Promise<any>}
+ */
+function initThreadPool(num_threads) {
+    const ret = wasm.initThreadPool(num_threads);
+    return ret;
+}
+exports.initThreadPool = initThreadPool;
+
+/**
+ * @param {number} n_threads
+ * @returns {Promise<any>}
+ */
+function init_threads(n_threads) {
+    const ret = wasm.init_threads(n_threads);
+    return ret;
+}
+exports.init_threads = init_threads;
+
+/**
  * Nearest Neighbor Descent implementation in Rust/WASM.
  *
  * This function performs approximate nearest neighbor graph construction
@@ -861,8 +906,86 @@ function version() {
 }
 exports.version = version;
 
+class wbg_rayon_PoolBuilder {
+    static __wrap(ptr) {
+        ptr = ptr >>> 0;
+        const obj = Object.create(wbg_rayon_PoolBuilder.prototype);
+        obj.__wbg_ptr = ptr;
+        wbg_rayon_PoolBuilderFinalization.register(obj, obj.__wbg_ptr, obj);
+        return obj;
+    }
+    __destroy_into_raw() {
+        const ptr = this.__wbg_ptr;
+        this.__wbg_ptr = 0;
+        wbg_rayon_PoolBuilderFinalization.unregister(this);
+        return ptr;
+    }
+    free() {
+        const ptr = this.__destroy_into_raw();
+        wasm.__wbg_wbg_rayon_poolbuilder_free(ptr, 0);
+    }
+    /**
+     * @returns {number}
+     */
+    numThreads() {
+        const ret = wasm.wbg_rayon_poolbuilder_numThreads(this.__wbg_ptr);
+        return ret >>> 0;
+    }
+    build() {
+        wasm.wbg_rayon_poolbuilder_build(this.__wbg_ptr);
+    }
+    /**
+     * @returns {number}
+     */
+    receiver() {
+        const ret = wasm.wbg_rayon_poolbuilder_receiver(this.__wbg_ptr);
+        return ret >>> 0;
+    }
+}
+if (Symbol.dispose) wbg_rayon_PoolBuilder.prototype[Symbol.dispose] = wbg_rayon_PoolBuilder.prototype.free;
+exports.wbg_rayon_PoolBuilder = wbg_rayon_PoolBuilder;
+
+/**
+ * @param {number} receiver
+ */
+function wbg_rayon_start_worker(receiver) {
+    wasm.wbg_rayon_start_worker(receiver);
+}
+exports.wbg_rayon_start_worker = wbg_rayon_start_worker;
+
+exports.__wbg___wbindgen_is_undefined_f6b95eab589e0269 = function(arg0) {
+    const ret = arg0 === undefined;
+    return ret;
+};
+
+exports.__wbg___wbindgen_memory_a342e963fbcabd68 = function() {
+    const ret = wasm.memory;
+    return ret;
+};
+
+exports.__wbg___wbindgen_module_967adef62ea6cbf8 = function() {
+    const ret = wasmModule;
+    return ret;
+};
+
 exports.__wbg___wbindgen_throw_dd24417ed36fc46e = function(arg0, arg1) {
     throw new Error(getStringFromWasm0(arg0, arg1));
+};
+
+exports.__wbg_call_abb4ff46ce38be40 = function() { return handleError(function (arg0, arg1) {
+    const ret = arg0.call(arg1);
+    return ret;
+}, arguments) };
+
+exports.__wbg_instanceof_Window_b5cf7783caa68180 = function(arg0) {
+    let result;
+    try {
+        result = arg0 instanceof Window;
+    } catch (_) {
+        result = false;
+    }
+    const ret = result;
+    return ret;
 };
 
 exports.__wbg_new_from_slice_9a48ef80d2a51f94 = function(arg0, arg1) {
@@ -873,6 +996,36 @@ exports.__wbg_new_from_slice_9a48ef80d2a51f94 = function(arg0, arg1) {
 exports.__wbg_new_from_slice_e6bd3cfb5a35313d = function(arg0, arg1) {
     const ret = new Int32Array(getArrayI32FromWasm0(arg0, arg1));
     return ret;
+};
+
+exports.__wbg_new_no_args_cb138f77cf6151ee = function(arg0, arg1) {
+    const ret = new Function(getStringFromWasm0(arg0, arg1));
+    return ret;
+};
+
+exports.__wbg_startWorkers_2ca11761e08ff5d5 = function(arg0, arg1, arg2) {
+    const ret = startWorkers(arg0, arg1, wbg_rayon_PoolBuilder.__wrap(arg2));
+    return ret;
+};
+
+exports.__wbg_static_accessor_GLOBAL_769e6b65d6557335 = function() {
+    const ret = typeof global === 'undefined' ? null : global;
+    return isLikeNone(ret) ? 0 : addToExternrefTable0(ret);
+};
+
+exports.__wbg_static_accessor_GLOBAL_THIS_60cf02db4de8e1c1 = function() {
+    const ret = typeof globalThis === 'undefined' ? null : globalThis;
+    return isLikeNone(ret) ? 0 : addToExternrefTable0(ret);
+};
+
+exports.__wbg_static_accessor_SELF_08f5a74c69739274 = function() {
+    const ret = typeof self === 'undefined' ? null : self;
+    return isLikeNone(ret) ? 0 : addToExternrefTable0(ret);
+};
+
+exports.__wbg_static_accessor_WINDOW_a8924b26aa92d024 = function() {
+    const ret = typeof window === 'undefined' ? null : window;
+    return isLikeNone(ret) ? 0 : addToExternrefTable0(ret);
 };
 
 exports.__wbindgen_cast_2241b6af4c4b2941 = function(arg0, arg1) {

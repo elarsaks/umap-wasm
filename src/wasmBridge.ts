@@ -33,6 +33,15 @@ export async function initWasm() {
       if (typeof mod.default === 'function') {
         await mod.default();
       }
+
+      if (typeof mod.init_threads === 'function') {
+        const canUseThreads =
+          typeof crossOriginIsolated !== 'undefined' && crossOriginIsolated &&
+          typeof navigator !== 'undefined' && typeof navigator.hardwareConcurrency === 'number';
+        if (canUseThreads) {
+          await mod.init_threads(navigator.hardwareConcurrency);
+        }
+      }
       
       wasmModule = mod;
       return mod;
