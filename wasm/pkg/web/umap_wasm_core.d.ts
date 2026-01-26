@@ -312,6 +312,7 @@ export class wbg_rayon_PoolBuilder {
   [Symbol.dispose](): void;
   numThreads(): number;
   build(): void;
+  mainJS(): string;
   receiver(): number;
 }
 
@@ -369,6 +370,7 @@ export interface InitOutput {
   readonly __wbg_wbg_rayon_poolbuilder_free: (a: number, b: number) => void;
   readonly initThreadPool: (a: number) => any;
   readonly wbg_rayon_poolbuilder_build: (a: number) => void;
+  readonly wbg_rayon_poolbuilder_mainJS: (a: number) => any;
   readonly wbg_rayon_poolbuilder_numThreads: (a: number) => number;
   readonly wbg_rayon_poolbuilder_receiver: (a: number) => number;
   readonly wbg_rayon_start_worker: (a: number) => void;
