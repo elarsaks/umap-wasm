@@ -31,21 +31,26 @@ jobs:
       - name: Install dependencies
         run: yarn install --immutable || yarn install
 
-      - name: Install Rust (nightly + wasm)
-        uses: dtolnay/rust-toolchain@nightly
-        with:
-          components: rust-src
-          targets: wasm32-unknown-unknown
+      - name: Install Rust toolchain
+        run: |
+          curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
+          source $HOME/.cargo/env
+          rustup target add wasm32-unknown-unknown
 
       - name: Install wasm-pack
         run: |
           curl https://rustwasm.github.io/wasm-pack/installer/init.sh -sSf | sh
 
       - name: Build WASM pkg
-        run: yarn build:wasm
+        working-directory: wasm
+        run: |
+          source $HOME/.cargo/env
+          wasm-pack build --target web --out-dir pkg
 
       - name: Build library
-        run: yarn build
+        run: |
+          source $HOME/.cargo/env
+          yarn build
 
       - name: Run unit tests
         run: yarn test
