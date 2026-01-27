@@ -12,11 +12,6 @@ export default {
         test: /(\.ts$|\.js$)/,
         exclude: /node_modules/,
         loader: 'ts-loader',
-        options: {
-          compilerOptions: {
-            removeComments: false,
-          },
-        },
       },
     ],
   },

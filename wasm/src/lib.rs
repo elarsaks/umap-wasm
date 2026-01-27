@@ -17,15 +17,3 @@ pub use matrix::{
 pub use nn_descent::nn_descent;
 pub use optimizer::{optimize_layout_batch, optimize_layout_step, OptimizerState};
 pub use tree::{build_rp_tree, search_flat_tree, FlatTree};
-
-#[cfg(feature = "threads")]
-use wasm_bindgen::prelude::*;
-
-#[cfg(feature = "threads")]
-use js_sys::Promise;
-
-#[cfg(feature = "threads")]
-#[wasm_bindgen]
-pub fn init_threads(n_threads: usize) -> Promise {
-    wasm_bindgen_rayon::init_thread_pool(n_threads)
-}
