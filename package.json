@@ -1,6 +1,6 @@
 {
   "name": "@elarsaks/umap-wasm",
-  "version": "0.3.13",
+  "version": "0.4.0",
   "description": "JavaScript implementation of UMAP",
   "author": {
     "name": "Elar Saks",
