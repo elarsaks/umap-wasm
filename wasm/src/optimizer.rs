@@ -101,17 +101,6 @@ fn clip(x: f64, clip_value: f64) -> f64 {
     x.max(-clip_value).min(clip_value)
 }
 
-/// Compute reduced Euclidean distance (squared distance without sqrt).
-#[inline]
-fn r_dist(current: &[f64], other: &[f64]) -> f64 {
-    let mut result = 0.0;
-    for i in 0..current.len() {
-        let diff = current[i] - other[i];
-        result += diff * diff;
-    }
-    result
-}
-
 /// Generate a random integer in [0, n).
 /// This is a simple LCG-based random number generator.
 #[inline]
@@ -124,25 +113,26 @@ fn tau_rand_int(n: usize, state: &mut u64) -> usize {
     ((*state >> 32) as usize) % n
 }
 
-/// Perform a single optimization step for UMAP layout.
-/// 
+/// Perform a single optimization step for UMAP layout, in-place.
+///
 /// This function executes one epoch of the stochastic gradient descent algorithm
 /// used to optimize the low-dimensional embedding. It processes attractive forces
 /// between known neighbors and repulsive forces from negative samples.
-/// 
-/// # Arguments
-/// * `state` - Mutable reference to the optimizer state
-/// * `rng_seed` - Seed for random number generation (will be updated internally)
-/// 
-/// # Returns
-/// The updated embedding as a flat vector
-#[wasm_bindgen]
-pub fn optimize_layout_step(state: &mut OptimizerState, rng_seed: u64) -> Vec<f64> {
+#[inline]
+fn optimize_layout_step_in_place(state: &mut OptimizerState, rng_seed: u64) {
     let clip_value = 4.0;
     let n = state.current_epoch;
     let mut rng_state = rng_seed;
     
     // Process each edge
+    let dim = state.dim;
+    let alpha = state.alpha;
+    let a = state.a;
+    let b = state.b;
+    let gamma = state.gamma;
+    let n_vertices = state.n_vertices;
+    let move_other = state.move_other;
+
     for i in 0..state.epochs_per_sample.len() {
         if state.epoch_of_next_sample[i] > n as f64 {
             continue;
@@ -152,35 +142,36 @@ pub fn optimize_layout_step(state: &mut OptimizerState, rng_seed: u64) -> Vec<f6
         let k = state.tail[i];
         
         // Get current and other embedding vectors
-        let current_start = j * state.dim;
-        let other_start = k * state.dim;
-        
-        // Copy values to avoid borrowing issues
-        let mut current_vec = Vec::with_capacity(state.dim);
-        let mut other_vec = Vec::with_capacity(state.dim);
-        for d in 0..state.dim {
-            current_vec.push(state.head_embedding[current_start + d]);
-            other_vec.push(state.tail_embedding[other_start + d]);
-        }
-        
-        let dist_squared = r_dist(&current_vec, &other_vec);
+        let current_start = j * dim;
+        let other_start = k * dim;
+        let dist_squared = {
+            let mut result = 0.0;
+            for d in 0..dim {
+                let diff = state.head_embedding[current_start + d]
+                    - state.tail_embedding[other_start + d];
+                result += diff * diff;
+            }
+            result
+        };
         
         // Compute attractive gradient
         let mut grad_coeff = 0.0;
         if dist_squared > 0.0 {
-            grad_coeff = -2.0 * state.a * state.b * dist_squared.powf(state.b - 1.0);
-            grad_coeff /= state.a * dist_squared.powf(state.b) + 1.0;
+            grad_coeff = -2.0 * a * b * dist_squared.powf(b - 1.0);
+            grad_coeff /= a * dist_squared.powf(b) + 1.0;
         }
         
         // Apply attractive force gradient
-        for d in 0..state.dim {
+        for d in 0..dim {
+            let current = state.head_embedding[current_start + d];
+            let other = state.tail_embedding[other_start + d];
             let grad_d = clip(
-                grad_coeff * (current_vec[d] - other_vec[d]),
+                grad_coeff * (current - other),
                 clip_value
             );
-            state.head_embedding[current_start + d] += grad_d * state.alpha;
-            if state.move_other {
-                state.tail_embedding[other_start + d] -= grad_d * state.alpha;
+            state.head_embedding[current_start + d] += grad_d * alpha;
+            if move_other {
+                state.tail_embedding[other_start + d] -= grad_d * alpha;
             }
         }
         
@@ -191,37 +182,39 @@ pub fn optimize_layout_step(state: &mut OptimizerState, rng_seed: u64) -> Vec<f6
             / state.epochs_per_negative_sample[i]).floor() as usize;
         
         for _ in 0..n_neg_samples {
-            let k_neg = tau_rand_int(state.n_vertices, &mut rng_state);
-            let other_start_neg = k_neg * state.dim;
+            let k_neg = tau_rand_int(n_vertices, &mut rng_state);
+            let other_start_neg = k_neg * dim;
             
-            // Copy current and other vectors
-            let mut current_vec = Vec::with_capacity(state.dim);
-            let mut other_vec = Vec::with_capacity(state.dim);
-            for d in 0..state.dim {
-                current_vec.push(state.head_embedding[current_start + d]);
-                other_vec.push(state.tail_embedding[other_start_neg + d]);
-            }
-            
-            let dist_squared = r_dist(&current_vec, &other_vec);
+            let dist_squared = {
+                let mut result = 0.0;
+                for d in 0..dim {
+                    let diff = state.head_embedding[current_start + d]
+                        - state.tail_embedding[other_start_neg + d];
+                    result += diff * diff;
+                }
+                result
+            };
             
             // Compute repulsive gradient
             let mut grad_coeff = 0.0;
             if dist_squared > 0.0 {
-                grad_coeff = 2.0 * state.gamma * state.b;
+                grad_coeff = 2.0 * gamma * b;
                 grad_coeff /= (0.001 + dist_squared) 
-                    * (state.a * dist_squared.powf(state.b) + 1.0);
+                    * (a * dist_squared.powf(b) + 1.0);
             } else if j == k_neg {
                 continue;
             }
             
             // Apply repulsive force gradient
-            for d in 0..state.dim {
+            for d in 0..dim {
+                let current = state.head_embedding[current_start + d];
+                let other = state.tail_embedding[other_start_neg + d];
                 let grad_d = if grad_coeff > 0.0 {
-                    clip(grad_coeff * (current_vec[d] - other_vec[d]), clip_value)
+                    clip(grad_coeff * (current - other), clip_value)
                 } else {
                     4.0
                 };
-                state.head_embedding[current_start + d] += grad_d * state.alpha;
+                state.head_embedding[current_start + d] += grad_d * alpha;
             }
         }
         
@@ -232,7 +225,19 @@ pub fn optimize_layout_step(state: &mut OptimizerState, rng_seed: u64) -> Vec<f6
     // Update learning rate
     state.alpha = state.initial_alpha * (1.0 - n as f64 / state.n_epochs as f64);
     state.current_epoch += 1;
-    
+}
+
+/// Perform a single optimization step for UMAP layout.
+///
+/// # Arguments
+/// * `state` - Mutable reference to the optimizer state
+/// * `rng_seed` - Seed for random number generation (will be updated internally)
+///
+/// # Returns
+/// The updated embedding as a flat vector
+#[wasm_bindgen]
+pub fn optimize_layout_step(state: &mut OptimizerState, rng_seed: u64) -> Vec<f64> {
+    optimize_layout_step_in_place(state, rng_seed);
     state.head_embedding.clone()
 }
 
@@ -260,7 +265,7 @@ pub fn optimize_layout_batch(
         if state.current_epoch >= state.n_epochs {
             break;
         }
-        optimize_layout_step(state, rng_state);
+        optimize_layout_step_in_place(state, rng_state);
         // Advance RNG state
         const A: u64 = 6364136223846793005;
         const C: u64 = 1442695040888963407;
