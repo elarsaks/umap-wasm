@@ -20,6 +20,7 @@ default = []
 allocator = ["wee_alloc"]
 
 [profile.release]
-lto = true
-opt-level = "z"
+lto = "fat"
+opt-level = 3
 codegen-units = 1
+panic = "abort"

@@ -16,12 +16,12 @@ yarn add umap-wasm
 
 ### Make the WASM artifacts available in the browser
 
-For browser builds the loader expects the compiled WASM bundle at `/wasm/pkg/web/umap_wasm_core.js` (and the accompanying `.wasm` binary) to be served as static assets. If your bundler does not automatically copy files from `node_modules`, add a `postinstall` script that places the package's `wasm/pkg` folder into your public/static directory:
+For browser builds the loader expects the compiled WASM bundle at `/wasm/pkg/web/umap_wasm_core.js` (and the accompanying `.wasm` binary) to be served as static assets. If your bundler does not automatically copy files from `node_modules`, add a `postinstall` script that copies only the web build into your public/static directory:
 
 ```json
 {
   "scripts": {
-    "postinstall": "mkdir -p public/wasm/pkg && cp -r node_modules/@elarsaks/umap-wasm/wasm/pkg/* public/wasm/pkg/"
+    "postinstall": "mkdir -p public/wasm/pkg/web && cp -r node_modules/@elarsaks/umap-wasm/wasm/pkg/web/* public/wasm/pkg/web/"
   }
 }
 ```
