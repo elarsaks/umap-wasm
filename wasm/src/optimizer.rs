@@ -81,6 +81,16 @@ impl OptimizerState {
     pub fn head_embedding(&self) -> Vec<f64> {
         self.head_embedding.clone()
     }
+
+    /// Get a pointer to the embedding buffer (for zero-copy views).
+    pub fn head_embedding_ptr(&self) -> *const f64 {
+        self.head_embedding.as_ptr()
+    }
+
+    /// Get the length of the embedding buffer.
+    pub fn head_embedding_len(&self) -> usize {
+        self.head_embedding.len()
+    }
     
     /// Get the current epoch number.
     #[wasm_bindgen(getter)]
@@ -119,7 +129,7 @@ fn tau_rand_int(n: usize, state: &mut u64) -> usize {
 /// used to optimize the low-dimensional embedding. It processes attractive forces
 /// between known neighbors and repulsive forces from negative samples.
 #[inline]
-fn optimize_layout_step_in_place(state: &mut OptimizerState, rng_seed: u64) {
+fn optimize_layout_step_in_place_inner(state: &mut OptimizerState, rng_seed: u64) {
     let clip_value = 4.0;
     let n = state.current_epoch;
     let mut rng_state = rng_seed;
@@ -237,8 +247,14 @@ fn optimize_layout_step_in_place(state: &mut OptimizerState, rng_seed: u64) {
 /// The updated embedding as a flat vector
 #[wasm_bindgen]
 pub fn optimize_layout_step(state: &mut OptimizerState, rng_seed: u64) -> Vec<f64> {
-    optimize_layout_step_in_place(state, rng_seed);
+    optimize_layout_step_in_place_inner(state, rng_seed);
     state.head_embedding.clone()
+}
+
+/// Perform a single optimization step in place without cloning the embedding.
+#[wasm_bindgen]
+pub fn optimize_layout_step_in_place(state: &mut OptimizerState, rng_seed: u64) {
+    optimize_layout_step_in_place_inner(state, rng_seed);
 }
 
 /// Perform multiple optimization steps in a batch.
@@ -265,11 +281,31 @@ pub fn optimize_layout_batch(
         if state.current_epoch >= state.n_epochs {
             break;
         }
-        optimize_layout_step_in_place(state, rng_state);
+        optimize_layout_step_in_place_inner(state, rng_state);
         // Advance RNG state
         const A: u64 = 6364136223846793005;
         const C: u64 = 1442695040888963407;
         rng_state = rng_state.wrapping_mul(A).wrapping_add(C);
     }
     state.head_embedding.clone()
+}
+
+/// Perform multiple optimization steps in place without cloning the embedding.
+#[wasm_bindgen]
+pub fn optimize_layout_batch_in_place(
+    state: &mut OptimizerState,
+    rng_seed: u64,
+    n_steps: usize,
+) {
+    let mut rng_state = rng_seed;
+    for _ in 0..n_steps {
+        if state.current_epoch >= state.n_epochs {
+            break;
+        }
+        optimize_layout_step_in_place_inner(state, rng_state);
+        // Advance RNG state
+        const A: u64 = 6364136223846793005;
+        const C: u64 = 1442695040888963407;
+        rng_state = rng_state.wrapping_mul(A).wrapping_add(C);
+    }
 }

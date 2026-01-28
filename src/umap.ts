@@ -101,6 +101,11 @@ export interface UMAPParameters {
    */
   useWasmOptimizer?: boolean;
   /**
+   * Number of WASM optimizer steps to batch per JS call.
+   * Larger values reduce JS↔WASM overhead but make callbacks less granular.
+   */
+  wasmBatchSize?: number;
+  /**
    * The initial learning rate for the embedding optimization.
    */
   learningRate?: number;
@@ -257,6 +262,8 @@ export class UMAP {
   private useWasmOptimizer = false;
   /** Use wasm tree construction when available and enabled via params */
   private useWasmTree = false;
+  /** Batch size for WASM optimizer calls */
+  private wasmBatchSize = 10;
 
   // KNN state (can be precomputed and supplied via initializeFit)
   private knnIndices?: number[][];
@@ -292,6 +299,7 @@ export class UMAP {
     setParam('useWasmMatrix');
     setParam('useWasmTree');
     setParam('useWasmOptimizer');
+    setParam('wasmBatchSize');
     setParam('learningRate');
     setParam('localConnectivity');
     setParam('minDist');
@@ -612,6 +620,9 @@ export class UMAP {
    * Returns the computed projected embedding.
    */
   getEmbedding() {
+    if (this.useWasmOptimizer && this.wasmOptimizerState) {
+      return this.materializeEmbeddingFromWasm();
+    }
     return this.embedding;
   }
 
@@ -1055,29 +1066,13 @@ export class UMAP {
   private optimizeLayoutStep(n: number) {
     // Use WASM optimizer if available and enabled
     if (this.useWasmOptimizer && this.wasmOptimizerState) {
-      const flatEmbedding = wasmBridge.optimizeLayoutStepWasm(
+      wasmBridge.optimizeLayoutStepInPlaceWasm(
         this.wasmOptimizerState,
         this.rngState
       );
-      
-      // Update RNG state (simple LCG advancement)
-      const A = BigInt('6364136223846793005');
-      const C = BigInt('1442695040888963407');
-      this.rngState = (this.rngState * A + C) & BigInt('0xFFFFFFFFFFFFFFFF');
-      
-      // Unflatten the embedding
-      const { dim } = this.optimizationState;
-      const { headEmbedding } = this.optimizationState;
-      const nPoints = headEmbedding.length;
-      
-      for (let i = 0; i < nPoints; i++) {
-        for (let j = 0; j < dim; j++) {
-          headEmbedding[i][j] = flatEmbedding[i * dim + j];
-        }
-      }
-      
+      this.advanceRngState(1);
       this.optimizationState.currentEpoch += 1;
-      return headEmbedding;
+      return this.materializeEmbeddingFromWasm();
     }
 
     // JavaScript implementation
@@ -1181,6 +1176,37 @@ export class UMAP {
     return new Promise((resolve, reject) => {
       const step = async () => {
         try {
+          if (this.useWasmOptimizer && this.wasmOptimizerState) {
+            const { nEpochs, currentEpoch } = this.optimizationState;
+            if (currentEpoch >= nEpochs) {
+              this.embedding = this.materializeEmbeddingFromWasm();
+              return resolve(true);
+            }
+
+            const batchSize = Math.max(1, this.wasmBatchSize);
+            const steps = Math.min(batchSize, nEpochs - currentEpoch);
+            const startEpoch = currentEpoch;
+            const advanced = this.optimizeLayoutBatchWasm(steps);
+
+            let shouldStop = false;
+            for (let e = startEpoch + 1; e <= startEpoch + advanced; e++) {
+              if (epochCallback(e) === false) {
+                shouldStop = true;
+                break;
+              }
+            }
+
+            const epochCompleted = this.optimizationState.currentEpoch;
+            const isFinished = epochCompleted === nEpochs;
+            if (!shouldStop && !isFinished) {
+              setTimeout(() => step(), 0);
+            } else {
+              this.embedding = this.materializeEmbeddingFromWasm();
+              return resolve(isFinished);
+            }
+            return;
+          }
+
           const { nEpochs, currentEpoch } = this.optimizationState;
           this.embedding = this.optimizeLayoutStep(currentEpoch);
           const epochCompleted = this.optimizationState.currentEpoch;
@@ -1211,6 +1237,28 @@ export class UMAP {
   ): Vectors {
     let isFinished = false;
     let embedding: Vectors = [];
+    if (this.useWasmOptimizer && this.wasmOptimizerState) {
+      while (!isFinished) {
+        const { nEpochs, currentEpoch } = this.optimizationState;
+        const batchSize = Math.max(1, this.wasmBatchSize);
+        const steps = Math.min(batchSize, nEpochs - currentEpoch);
+        const startEpoch = currentEpoch;
+        const advanced = this.optimizeLayoutBatchWasm(steps);
+
+        let shouldStop = false;
+        for (let e = startEpoch + 1; e <= startEpoch + advanced; e++) {
+          if (epochCallback(e) === false) {
+            shouldStop = true;
+            break;
+          }
+        }
+
+        const epochCompleted = this.optimizationState.currentEpoch;
+        isFinished = epochCompleted === nEpochs || shouldStop;
+      }
+      embedding = this.materializeEmbeddingFromWasm();
+      return embedding;
+    }
     while (!isFinished) {
       const { nEpochs, currentEpoch } = this.optimizationState;
       embedding = this.optimizeLayoutStep(currentEpoch);
@@ -1219,6 +1267,55 @@ export class UMAP {
       isFinished = epochCompleted === nEpochs || shouldStop;
     }
     return embedding;
+  }
+
+  private optimizeLayoutBatchWasm(steps: number) {
+    if (!this.wasmOptimizerState) {
+      throw new Error('WASM optimizer state is not initialized.');
+    }
+    const remaining = this.optimizationState.nEpochs - this.optimizationState.currentEpoch;
+    const actualSteps = Math.min(steps, remaining);
+    if (actualSteps <= 0) {
+      return 0;
+    }
+
+    wasmBridge.optimizeLayoutBatchInPlaceWasm(
+      this.wasmOptimizerState,
+      this.rngState,
+      actualSteps
+    );
+    this.advanceRngState(actualSteps);
+    this.optimizationState.currentEpoch += actualSteps;
+    return actualSteps;
+  }
+
+  private materializeEmbeddingFromWasm() {
+    if (!this.wasmOptimizerState) {
+      return this.embedding;
+    }
+
+    const { dim, nVertices } = this.optimizationState;
+    const flat = wasmBridge.getOptimizerEmbeddingView(this.wasmOptimizerState);
+
+    const embedding: number[][] = new Array(nVertices);
+    for (let i = 0; i < nVertices; i++) {
+      const row: number[] = new Array(dim);
+      const base = i * dim;
+      for (let j = 0; j < dim; j++) {
+        row[j] = flat[base + j];
+      }
+      embedding[i] = row;
+    }
+    this.embedding = embedding;
+    return embedding;
+  }
+
+  private advanceRngState(steps: number) {
+    const A = BigInt('6364136223846793005');
+    const C = BigInt('1442695040888963407');
+    for (let i = 0; i < steps; i++) {
+      this.rngState = (this.rngState * A + C) & BigInt('0xFFFFFFFFFFFFFFFF');
+    }
   }
 
   /**
