@@ -8,11 +8,6 @@ function _assertClass(instance, klass) {
     }
 }
 
-function getArrayF32FromWasm0(ptr, len) {
-    ptr = ptr >>> 0;
-    return getFloat32ArrayMemory0().subarray(ptr / 4, ptr / 4 + len);
-}
-
 function getArrayF64FromWasm0(ptr, len) {
     ptr = ptr >>> 0;
     return getFloat64ArrayMemory0().subarray(ptr / 8, ptr / 8 + len);
@@ -26,14 +21,6 @@ function getArrayI32FromWasm0(ptr, len) {
 function getArrayU32FromWasm0(ptr, len) {
     ptr = ptr >>> 0;
     return getUint32ArrayMemory0().subarray(ptr / 4, ptr / 4 + len);
-}
-
-let cachedFloat32ArrayMemory0 = null;
-function getFloat32ArrayMemory0() {
-    if (cachedFloat32ArrayMemory0 === null || cachedFloat32ArrayMemory0.byteLength === 0) {
-        cachedFloat32ArrayMemory0 = new Float32Array(wasm.memory.buffer);
-    }
-    return cachedFloat32ArrayMemory0;
 }
 
 let cachedFloat64ArrayMemory0 = null;
@@ -76,13 +63,6 @@ function getUint8ArrayMemory0() {
 function passArray32ToWasm0(arg, malloc) {
     const ptr = malloc(arg.length * 4, 4) >>> 0;
     getUint32ArrayMemory0().set(arg, ptr / 4);
-    WASM_VECTOR_LEN = arg.length;
-    return ptr;
-}
-
-function passArrayF32ToWasm0(arg, malloc) {
-    const ptr = malloc(arg.length * 4, 4) >>> 0;
-    getFloat32ArrayMemory0().set(arg, ptr / 4);
     WASM_VECTOR_LEN = arg.length;
     return ptr;
 }
@@ -280,12 +260,12 @@ class OptimizerState {
     }
     /**
      * Get the current embedding as a flat array.
-     * @returns {Float32Array}
+     * @returns {Float64Array}
      */
     get head_embedding() {
         const ret = wasm.optimizerstate_head_embedding(this.__wbg_ptr);
-        var v1 = getArrayF32FromWasm0(ret[0], ret[1]).slice();
-        wasm.__wbindgen_free(ret[0], ret[1] * 4, 4);
+        var v1 = getArrayF64FromWasm0(ret[0], ret[1]).slice();
+        wasm.__wbindgen_free(ret[0], ret[1] * 8, 8);
         return v1;
     }
     /**
@@ -308,10 +288,10 @@ class OptimizerState {
      * Create a new optimizer state with the given parameters.
      * @param {Uint32Array} head
      * @param {Uint32Array} tail
-     * @param {Float32Array} head_embedding
-     * @param {Float32Array} tail_embedding
-     * @param {Float32Array} epochs_per_sample
-     * @param {Float32Array} epochs_per_negative_sample
+     * @param {Float64Array} head_embedding
+     * @param {Float64Array} tail_embedding
+     * @param {Float64Array} epochs_per_sample
+     * @param {Float64Array} epochs_per_negative_sample
      * @param {boolean} move_other
      * @param {number} initial_alpha
      * @param {number} gamma
@@ -326,13 +306,13 @@ class OptimizerState {
         const len0 = WASM_VECTOR_LEN;
         const ptr1 = passArray32ToWasm0(tail, wasm.__wbindgen_malloc);
         const len1 = WASM_VECTOR_LEN;
-        const ptr2 = passArrayF32ToWasm0(head_embedding, wasm.__wbindgen_malloc);
+        const ptr2 = passArrayF64ToWasm0(head_embedding, wasm.__wbindgen_malloc);
         const len2 = WASM_VECTOR_LEN;
-        const ptr3 = passArrayF32ToWasm0(tail_embedding, wasm.__wbindgen_malloc);
+        const ptr3 = passArrayF64ToWasm0(tail_embedding, wasm.__wbindgen_malloc);
         const len3 = WASM_VECTOR_LEN;
-        const ptr4 = passArrayF32ToWasm0(epochs_per_sample, wasm.__wbindgen_malloc);
+        const ptr4 = passArrayF64ToWasm0(epochs_per_sample, wasm.__wbindgen_malloc);
         const len4 = WASM_VECTOR_LEN;
-        const ptr5 = passArrayF32ToWasm0(epochs_per_negative_sample, wasm.__wbindgen_malloc);
+        const ptr5 = passArrayF64ToWasm0(epochs_per_negative_sample, wasm.__wbindgen_malloc);
         const len5 = WASM_VECTOR_LEN;
         const ret = wasm.optimizerstate_new(ptr0, len0, ptr1, len1, ptr2, len2, ptr3, len3, ptr4, len4, ptr5, len5, move_other, initial_alpha, gamma, a, b, dim, n_epochs, n_vertices);
         this.__wbg_ptr = ret >>> 0;
@@ -696,13 +676,13 @@ exports.nn_descent = nn_descent;
  * The final embedding as a flat vector
  * @param {OptimizerState} state
  * @param {number} n_steps
- * @returns {Float32Array}
+ * @returns {Float64Array}
  */
 function optimize_layout_batch(state, n_steps) {
     _assertClass(state, OptimizerState);
     const ret = wasm.optimize_layout_batch(state.__wbg_ptr, n_steps);
-    var v1 = getArrayF32FromWasm0(ret[0], ret[1]).slice();
-    wasm.__wbindgen_free(ret[0], ret[1] * 4, 4);
+    var v1 = getArrayF64FromWasm0(ret[0], ret[1]).slice();
+    wasm.__wbindgen_free(ret[0], ret[1] * 8, 8);
     return v1;
 }
 exports.optimize_layout_batch = optimize_layout_batch;
@@ -726,13 +706,13 @@ exports.optimize_layout_batch_in_place = optimize_layout_batch_in_place;
  * # Returns
  * The updated embedding as a flat vector
  * @param {OptimizerState} state
- * @returns {Float32Array}
+ * @returns {Float64Array}
  */
 function optimize_layout_step(state) {
     _assertClass(state, OptimizerState);
     const ret = wasm.optimize_layout_step(state.__wbg_ptr);
-    var v1 = getArrayF32FromWasm0(ret[0], ret[1]).slice();
-    wasm.__wbindgen_free(ret[0], ret[1] * 4, 4);
+    var v1 = getArrayF64FromWasm0(ret[0], ret[1]).slice();
+    wasm.__wbindgen_free(ret[0], ret[1] * 8, 8);
     return v1;
 }
 exports.optimize_layout_step = optimize_layout_step;
