@@ -347,13 +347,18 @@ export function sparseGetCSRWasm(matrix: WasmSparseMatrix): { indices: number[];
  * Convert a WASM sparse matrix to a 2D JavaScript array.
  */
 export function wasmSparseMatrixToArray(matrix: WasmSparseMatrix): number[][] {
-  const flat = Array.from(matrix.to_array());
+  const flat = matrix.to_array();
   const nRows = matrix.n_rows;
   const nCols = matrix.n_cols;
   
   const result: number[][] = [];
   for (let i = 0; i < nRows; i++) {
-    result.push(flat.slice(i * nCols, (i + 1) * nCols));
+    const row: number[] = new Array(nCols);
+    const start = i * nCols;
+    for (let j = 0; j < nCols; j++) {
+      row[j] = flat[start + j];
+    }
+    result.push(row);
   }
   return result;
 }
@@ -363,7 +368,7 @@ export function wasmSparseMatrixToArray(matrix: WasmSparseMatrix): number[][] {
  * @returns Array of {value, row, col} entries, ordered by row then col
  */
 export function wasmSparseMatrixGetAll(matrix: WasmSparseMatrix): { value: number; row: number; col: number }[] {
-  const flat = Array.from(matrix.get_all_ordered());
+  const flat = matrix.get_all_ordered();
   const entries: { value: number; row: number; col: number }[] = [];
   
   for (let i = 0; i < flat.length; i += 3) {
@@ -375,6 +380,31 @@ export function wasmSparseMatrixGetAll(matrix: WasmSparseMatrix): { value: numbe
   }
   
   return entries;
+}
+
+/**
+ * Get all entries from a WASM sparse matrix as typed arrays.
+ */
+export function wasmSparseMatrixGetAllTyped(matrix: WasmSparseMatrix): {
+  rows: Int32Array;
+  cols: Int32Array;
+  values: Float64Array;
+} {
+  const flat = matrix.get_all_ordered();
+  const count = Math.floor(flat.length / 3);
+  const rows = new Int32Array(count);
+  const cols = new Int32Array(count);
+  const values = new Float64Array(count);
+
+  let out = 0;
+  for (let i = 0; i < flat.length; i += 3) {
+    rows[out] = flat[i];
+    cols[out] = flat[i + 1];
+    values[out] = flat[i + 2];
+    out += 1;
+  }
+
+  return { rows, cols, values };
 }
 
 // ============================================================================
@@ -398,7 +428,7 @@ export function wasmSparseMatrixGetAll(matrix: WasmSparseMatrix): { value: numbe
  */
 export function nnDescentWasm(
   data: number[][],
-  leafArray: number[][],
+  leafArray: ArrayLike<number>[],
   nNeighbors: number,
   nIters: number = 10,
   maxCandidates: number = 50,
