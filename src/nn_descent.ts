@@ -79,7 +79,7 @@ export function makeNNDescent(
 ) {
   return function nNDescent(
     data: Vectors,
-    leafArray: Vectors,
+    leafArray: ArrayLike<number>[],
     nNeighbors: number,
     nIters = 10,
     maxCandidates = 50,

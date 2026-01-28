@@ -419,7 +419,11 @@ describe('useWasmMatrix toggle', () => {
     const sparseTransposeMock = vi.spyOn(wasmBridge, 'sparseTransposeWasm').mockImplementation((a) => a);
     const sparsePairwiseMultiplyMock = vi.spyOn(wasmBridge, 'sparsePairwiseMultiplyWasm').mockImplementation((a, b) => a);
     const sparseMultiplyScalarMock = vi.spyOn(wasmBridge, 'sparseMultiplyScalarWasm').mockImplementation((a, s) => a);
-    const wasmSparseMatrixGetAllMock = vi.spyOn(wasmBridge, 'wasmSparseMatrixGetAll').mockImplementation(() => []);
+    const wasmSparseMatrixGetAllMock = vi.spyOn(wasmBridge, 'wasmSparseMatrixGetAllTyped').mockImplementation(() => ({
+      rows: new Int32Array(),
+      cols: new Int32Array(),
+      values: new Float64Array(),
+    }));
 
     const umap = new UMAP({ useWasmMatrix: true, nNeighbors: 2, nEpochs: 5 });
 
