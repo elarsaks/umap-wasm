@@ -249,13 +249,6 @@ export class OptimizerState {
         wasm.__wbg_optimizerstate_free(ptr, 0);
     }
     /**
-     * Seed the internal RNG used by the optimizer.
-     * @param {bigint} seed
-     */
-    set_rng_seed(seed) {
-        wasm.optimizerstate_set_rng_seed(this.__wbg_ptr, seed);
-    }
-    /**
      * Get the current epoch number.
      * @returns {number}
      */
@@ -329,16 +322,8 @@ export class OptimizerState {
      * @returns {number}
      */
     get n_epochs() {
-        const ret = wasm.optimizerstate_n_epochs(this.__wbg_ptr);
+        const ret = wasm.flattree_dim(this.__wbg_ptr);
         return ret >>> 0;
-    }
-    /**
-     * Get the current RNG seed/state.
-     * @returns {bigint}
-     */
-    rng_seed() {
-        const ret = wasm.optimizerstate_rng_seed(this.__wbg_ptr);
-        return BigInt.asUintN(64, ret);
     }
 }
 if (Symbol.dispose) OptimizerState.prototype[Symbol.dispose] = OptimizerState.prototype.free;
@@ -669,17 +654,19 @@ export function nn_descent(data_flat, n_samples, dim, leaf_array_flat, n_leaves,
  *
  * # Arguments
  * * `state` - Mutable reference to the optimizer state
+ * * `rng_seed` - Seed for random number generation
  * * `n_steps` - Number of steps to perform
  *
  * # Returns
  * The final embedding as a flat vector
  * @param {OptimizerState} state
+ * @param {bigint} rng_seed
  * @param {number} n_steps
  * @returns {Float64Array}
  */
-export function optimize_layout_batch(state, n_steps) {
+export function optimize_layout_batch(state, rng_seed, n_steps) {
     _assertClass(state, OptimizerState);
-    const ret = wasm.optimize_layout_batch(state.__wbg_ptr, n_steps);
+    const ret = wasm.optimize_layout_batch(state.__wbg_ptr, rng_seed, n_steps);
     var v1 = getArrayF64FromWasm0(ret[0], ret[1]).slice();
     wasm.__wbindgen_free(ret[0], ret[1] * 8, 8);
     return v1;
@@ -688,11 +675,12 @@ export function optimize_layout_batch(state, n_steps) {
 /**
  * Perform multiple optimization steps in place without cloning the embedding.
  * @param {OptimizerState} state
+ * @param {bigint} rng_seed
  * @param {number} n_steps
  */
-export function optimize_layout_batch_in_place(state, n_steps) {
+export function optimize_layout_batch_in_place(state, rng_seed, n_steps) {
     _assertClass(state, OptimizerState);
-    wasm.optimize_layout_batch_in_place(state.__wbg_ptr, n_steps);
+    wasm.optimize_layout_batch_in_place(state.__wbg_ptr, rng_seed, n_steps);
 }
 
 /**
@@ -700,14 +688,17 @@ export function optimize_layout_batch_in_place(state, n_steps) {
  *
  * # Arguments
  * * `state` - Mutable reference to the optimizer state
+ * * `rng_seed` - Seed for random number generation (will be updated internally)
+ *
  * # Returns
  * The updated embedding as a flat vector
  * @param {OptimizerState} state
+ * @param {bigint} rng_seed
  * @returns {Float64Array}
  */
-export function optimize_layout_step(state) {
+export function optimize_layout_step(state, rng_seed) {
     _assertClass(state, OptimizerState);
-    const ret = wasm.optimize_layout_step(state.__wbg_ptr);
+    const ret = wasm.optimize_layout_step(state.__wbg_ptr, rng_seed);
     var v1 = getArrayF64FromWasm0(ret[0], ret[1]).slice();
     wasm.__wbindgen_free(ret[0], ret[1] * 8, 8);
     return v1;
@@ -716,10 +707,11 @@ export function optimize_layout_step(state) {
 /**
  * Perform a single optimization step in place without cloning the embedding.
  * @param {OptimizerState} state
+ * @param {bigint} rng_seed
  */
-export function optimize_layout_step_in_place(state) {
+export function optimize_layout_step_in_place(state, rng_seed) {
     _assertClass(state, OptimizerState);
-    wasm.optimize_layout_step_in_place(state.__wbg_ptr);
+    wasm.optimize_layout_step_in_place(state.__wbg_ptr, rng_seed);
 }
 
 /**

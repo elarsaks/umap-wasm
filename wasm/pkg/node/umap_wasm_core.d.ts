@@ -49,7 +49,7 @@ export class OptimizerState {
   /**
    * Create a new optimizer state with the given parameters.
    */
-  constructor(head: Uint32Array, tail: Uint32Array, head_embedding: Float64Array, tail_embedding: Float64Array, epochs_per_sample: Float64Array, epochs_per_negative_sample: Float64Array, move_other: boolean, initial_alpha: number, gamma: number, a: number, b: number, dim: number, n_epochs: number, n_vertices: number);
+  constructor(head: Uint32Array, tail: Uint32Array, head_embedding: Float32Array, tail_embedding: Float32Array, epochs_per_sample: Float32Array, epochs_per_negative_sample: Float32Array, move_other: boolean, initial_alpha: number, gamma: number, a: number, b: number, dim: number, n_epochs: number, n_vertices: number);
   /**
    * Get the current RNG seed/state.
    */
@@ -61,7 +61,7 @@ export class OptimizerState {
   /**
    * Get the current embedding as a flat array.
    */
-  readonly head_embedding: Float64Array;
+  readonly head_embedding: Float32Array;
   /**
    * Get the total number of epochs.
    */
@@ -229,7 +229,7 @@ export function nn_descent(data_flat: Float64Array, n_samples: number, dim: numb
  * # Returns
  * The final embedding as a flat vector
  */
-export function optimize_layout_batch(state: OptimizerState, n_steps: number): Float64Array;
+export function optimize_layout_batch(state: OptimizerState, n_steps: number): Float32Array;
 
 /**
  * Perform multiple optimization steps in place without cloning the embedding.
@@ -244,7 +244,7 @@ export function optimize_layout_batch_in_place(state: OptimizerState, n_steps: n
  * # Returns
  * The updated embedding as a flat vector
  */
-export function optimize_layout_step(state: OptimizerState): Float64Array;
+export function optimize_layout_step(state: OptimizerState): Float32Array;
 
 /**
  * Perform a single optimization step in place without cloning the embedding.
