@@ -554,6 +554,8 @@ export interface WasmOptimizerState {
   n_epochs: number;
   head_embedding_ptr(): number;
   head_embedding_len(): number;
+  set_rng_seed(seed: bigint): void;
+  rng_seed(): bigint;
   free(): void;
 }
 
@@ -642,24 +644,22 @@ export function createOptimizerState(
  * @returns Updated embedding as a flat Float64Array
  */
 export function optimizeLayoutStepWasm(
-  state: WasmOptimizerState,
-  rngSeed: bigint
+  state: WasmOptimizerState
 ): Float64Array {
   if (!wasmModule) throw new Error('WASM module not initialized');
   
-  return wasmModule.optimize_layout_step(state, rngSeed);
+  return wasmModule.optimize_layout_step(state);
 }
 
 /**
  * Perform a single optimization step in place using WASM.
  */
 export function optimizeLayoutStepInPlaceWasm(
-  state: WasmOptimizerState,
-  rngSeed: bigint
+  state: WasmOptimizerState
 ): void {
   if (!wasmModule) throw new Error('WASM module not initialized');
 
-  wasmModule.optimize_layout_step_in_place(state, rngSeed);
+  wasmModule.optimize_layout_step_in_place(state);
 }
 
 /**
@@ -672,12 +672,11 @@ export function optimizeLayoutStepInPlaceWasm(
  */
 export function optimizeLayoutBatchWasm(
   state: WasmOptimizerState,
-  rngSeed: bigint,
   nSteps: number
 ): Float64Array {
   if (!wasmModule) throw new Error('WASM module not initialized');
   
-  return wasmModule.optimize_layout_batch(state, rngSeed, nSteps);
+  return wasmModule.optimize_layout_batch(state, nSteps);
 }
 
 /**
@@ -685,12 +684,11 @@ export function optimizeLayoutBatchWasm(
  */
 export function optimizeLayoutBatchInPlaceWasm(
   state: WasmOptimizerState,
-  rngSeed: bigint,
   nSteps: number
 ): void {
   if (!wasmModule) throw new Error('WASM module not initialized');
 
-  wasmModule.optimize_layout_batch_in_place(state, rngSeed, nSteps);
+  wasmModule.optimize_layout_batch_in_place(state, nSteps);
 }
 
 /**

@@ -1071,6 +1071,9 @@ export class UMAP {
         nEpochs,
         nVertices
       );
+      // Seed WASM RNG from the configured JS RNG for deterministic runs.
+      this.rngState = BigInt(Math.floor(this.random() * 0xFFFFFFFF));
+      this.wasmOptimizerState.set_rng_seed(this.rngState);
     }
   }
 
@@ -1113,11 +1116,7 @@ export class UMAP {
   private optimizeLayoutStep(n: number) {
     // Use WASM optimizer if available and enabled
     if (this.useWasmOptimizer && this.wasmOptimizerState) {
-      wasmBridge.optimizeLayoutStepInPlaceWasm(
-        this.wasmOptimizerState,
-        this.rngState
-      );
-      this.advanceRngState(1);
+      wasmBridge.optimizeLayoutStepInPlaceWasm(this.wasmOptimizerState);
       this.optimizationState.currentEpoch += 1;
       return this.materializeEmbeddingFromWasm();
     }
@@ -1328,10 +1327,8 @@ export class UMAP {
 
     wasmBridge.optimizeLayoutBatchInPlaceWasm(
       this.wasmOptimizerState,
-      this.rngState,
       actualSteps
     );
-    this.advanceRngState(actualSteps);
     this.optimizationState.currentEpoch += actualSteps;
     return actualSteps;
   }
@@ -1355,14 +1352,6 @@ export class UMAP {
     }
     this.embedding = embedding;
     return embedding;
-  }
-
-  private advanceRngState(steps: number) {
-    const A = BigInt('6364136223846793005');
-    const C = BigInt('1442695040888963407');
-    for (let i = 0; i < steps; i++) {
-      this.rngState = (this.rngState * A + C) & BigInt('0xFFFFFFFFFFFFFFFF');
-    }
   }
 
   /**

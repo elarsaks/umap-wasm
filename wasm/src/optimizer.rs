@@ -29,6 +29,7 @@ pub struct OptimizerState {
     n_epochs: usize,
     n_vertices: usize,
     current_epoch: usize,
+    rng_state: u64,
 }
 
 #[wasm_bindgen]
@@ -73,6 +74,7 @@ impl OptimizerState {
             n_epochs,
             n_vertices,
             current_epoch: 0,
+            rng_state: 0,
         }
     }
     
@@ -103,6 +105,16 @@ impl OptimizerState {
     pub fn n_epochs(&self) -> usize {
         self.n_epochs
     }
+
+    /// Seed the internal RNG used by the optimizer.
+    pub fn set_rng_seed(&mut self, seed: u64) {
+        self.rng_state = seed;
+    }
+
+    /// Get the current RNG seed/state.
+    pub fn rng_seed(&self) -> u64 {
+        self.rng_state
+    }
 }
 
 /// Clip a value to be within [-clip_value, clip_value].
@@ -129,10 +141,10 @@ fn tau_rand_int(n: usize, state: &mut u64) -> usize {
 /// used to optimize the low-dimensional embedding. It processes attractive forces
 /// between known neighbors and repulsive forces from negative samples.
 #[inline]
-fn optimize_layout_step_in_place_inner(state: &mut OptimizerState, rng_seed: u64) {
+fn optimize_layout_step_in_place_inner(state: &mut OptimizerState) {
     let clip_value = 4.0;
     let n = state.current_epoch;
-    let mut rng_state = rng_seed;
+    let mut rng_state = state.rng_state;
     
     // Process each edge
     let dim = state.dim;
@@ -235,26 +247,25 @@ fn optimize_layout_step_in_place_inner(state: &mut OptimizerState, rng_seed: u64
     // Update learning rate
     state.alpha = state.initial_alpha * (1.0 - n as f64 / state.n_epochs as f64);
     state.current_epoch += 1;
+    state.rng_state = rng_state;
 }
 
 /// Perform a single optimization step for UMAP layout.
 ///
 /// # Arguments
 /// * `state` - Mutable reference to the optimizer state
-/// * `rng_seed` - Seed for random number generation (will be updated internally)
-///
 /// # Returns
 /// The updated embedding as a flat vector
 #[wasm_bindgen]
-pub fn optimize_layout_step(state: &mut OptimizerState, rng_seed: u64) -> Vec<f64> {
-    optimize_layout_step_in_place_inner(state, rng_seed);
+pub fn optimize_layout_step(state: &mut OptimizerState) -> Vec<f64> {
+    optimize_layout_step_in_place_inner(state);
     state.head_embedding.clone()
 }
 
 /// Perform a single optimization step in place without cloning the embedding.
 #[wasm_bindgen]
-pub fn optimize_layout_step_in_place(state: &mut OptimizerState, rng_seed: u64) {
-    optimize_layout_step_in_place_inner(state, rng_seed);
+pub fn optimize_layout_step_in_place(state: &mut OptimizerState) {
+    optimize_layout_step_in_place_inner(state);
 }
 
 /// Perform multiple optimization steps in a batch.
@@ -265,7 +276,6 @@ pub fn optimize_layout_step_in_place(state: &mut OptimizerState, rng_seed: u64) 
 /// 
 /// # Arguments
 /// * `state` - Mutable reference to the optimizer state
-/// * `rng_seed` - Seed for random number generation
 /// * `n_steps` - Number of steps to perform
 /// 
 /// # Returns
@@ -273,19 +283,13 @@ pub fn optimize_layout_step_in_place(state: &mut OptimizerState, rng_seed: u64) 
 #[wasm_bindgen]
 pub fn optimize_layout_batch(
     state: &mut OptimizerState,
-    rng_seed: u64,
     n_steps: usize,
 ) -> Vec<f64> {
-    let mut rng_state = rng_seed;
     for _ in 0..n_steps {
         if state.current_epoch >= state.n_epochs {
             break;
         }
-        optimize_layout_step_in_place_inner(state, rng_state);
-        // Advance RNG state
-        const A: u64 = 6364136223846793005;
-        const C: u64 = 1442695040888963407;
-        rng_state = rng_state.wrapping_mul(A).wrapping_add(C);
+        optimize_layout_step_in_place_inner(state);
     }
     state.head_embedding.clone()
 }
@@ -294,18 +298,12 @@ pub fn optimize_layout_batch(
 #[wasm_bindgen]
 pub fn optimize_layout_batch_in_place(
     state: &mut OptimizerState,
-    rng_seed: u64,
     n_steps: usize,
 ) {
-    let mut rng_state = rng_seed;
     for _ in 0..n_steps {
         if state.current_epoch >= state.n_epochs {
             break;
         }
-        optimize_layout_step_in_place_inner(state, rng_state);
-        // Advance RNG state
-        const A: u64 = 6364136223846793005;
-        const C: u64 = 1442695040888963407;
-        rng_state = rng_state.wrapping_mul(A).wrapping_add(C);
+        optimize_layout_step_in_place_inner(state);
     }
 }
