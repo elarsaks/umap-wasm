@@ -9,22 +9,22 @@ pub struct OptimizerState {
     tail: Vec<usize>,
     
     // Embedding data (flattened 2D arrays)
-    head_embedding: Vec<f32>,
-    tail_embedding: Vec<f32>,
+    head_embedding: Vec<f64>,
+    tail_embedding: Vec<f64>,
     
     // Sampling data
-    epochs_per_sample: Vec<f32>,
-    epoch_of_next_sample: Vec<f32>,
-    epoch_of_next_negative_sample: Vec<f32>,
-    epochs_per_negative_sample: Vec<f32>,
+    epochs_per_sample: Vec<f64>,
+    epoch_of_next_sample: Vec<f64>,
+    epoch_of_next_negative_sample: Vec<f64>,
+    epochs_per_negative_sample: Vec<f64>,
     
     // Optimization parameters
     move_other: bool,
-    initial_alpha: f32,
-    alpha: f32,
-    gamma: f32,
-    a: f32,
-    b: f32,
+    initial_alpha: f64,
+    alpha: f64,
+    gamma: f64,
+    a: f64,
+    b: f64,
     dim: usize,
     n_epochs: usize,
     n_vertices: usize,
@@ -39,15 +39,15 @@ impl OptimizerState {
     pub fn new(
         head: Vec<usize>,
         tail: Vec<usize>,
-        head_embedding: Vec<f32>,
-        tail_embedding: Vec<f32>,
-        epochs_per_sample: Vec<f32>,
-        epochs_per_negative_sample: Vec<f32>,
+        head_embedding: Vec<f64>,
+        tail_embedding: Vec<f64>,
+        epochs_per_sample: Vec<f64>,
+        epochs_per_negative_sample: Vec<f64>,
         move_other: bool,
-        initial_alpha: f32,
-        gamma: f32,
-        a: f32,
-        b: f32,
+        initial_alpha: f64,
+        gamma: f64,
+        a: f64,
+        b: f64,
         dim: usize,
         n_epochs: usize,
         n_vertices: usize,
@@ -80,12 +80,12 @@ impl OptimizerState {
     
     /// Get the current embedding as a flat array.
     #[wasm_bindgen(getter)]
-    pub fn head_embedding(&self) -> Vec<f32> {
+    pub fn head_embedding(&self) -> Vec<f64> {
         self.head_embedding.clone()
     }
 
     /// Get a pointer to the embedding buffer (for zero-copy views).
-    pub fn head_embedding_ptr(&self) -> *const f32 {
+    pub fn head_embedding_ptr(&self) -> *const f64 {
         self.head_embedding.as_ptr()
     }
 
@@ -119,7 +119,7 @@ impl OptimizerState {
 
 /// Clip a value to be within [-clip_value, clip_value].
 #[inline]
-fn clip(x: f32, clip_value: f32) -> f32 {
+fn clip(x: f64, clip_value: f64) -> f64 {
     x.max(-clip_value).min(clip_value)
 }
 
@@ -142,7 +142,7 @@ fn tau_rand_int(n: usize, state: &mut u64) -> usize {
 /// between known neighbors and repulsive forces from negative samples.
 #[inline]
 fn optimize_layout_step_in_place_inner(state: &mut OptimizerState) {
-    let clip_value: f32 = 4.0;
+    let clip_value = 4.0;
     let n = state.current_epoch;
     let mut rng_state = state.rng_state;
     
@@ -156,7 +156,7 @@ fn optimize_layout_step_in_place_inner(state: &mut OptimizerState) {
     let move_other = state.move_other;
 
     for i in 0..state.epochs_per_sample.len() {
-        if state.epoch_of_next_sample[i] > n as f32 {
+        if state.epoch_of_next_sample[i] > n as f64 {
             continue;
         }
         
@@ -167,7 +167,7 @@ fn optimize_layout_step_in_place_inner(state: &mut OptimizerState) {
         let current_start = j * dim;
         let other_start = k * dim;
         let dist_squared = {
-            let mut result: f32 = 0.0;
+            let mut result = 0.0;
             for d in 0..dim {
                 let diff = state.head_embedding[current_start + d]
                     - state.tail_embedding[other_start + d];
@@ -177,7 +177,7 @@ fn optimize_layout_step_in_place_inner(state: &mut OptimizerState) {
         };
         
         // Compute attractive gradient
-        let mut grad_coeff: f32 = 0.0;
+        let mut grad_coeff = 0.0;
         if dist_squared > 0.0 {
             grad_coeff = -2.0 * a * b * dist_squared.powf(b - 1.0);
             grad_coeff /= a * dist_squared.powf(b) + 1.0;
@@ -200,16 +200,15 @@ fn optimize_layout_step_in_place_inner(state: &mut OptimizerState) {
         state.epoch_of_next_sample[i] += state.epochs_per_sample[i];
         
         // Process negative samples
-        let n_neg_samples = ((n as f32 - state.epoch_of_next_negative_sample[i])
-            / state.epochs_per_negative_sample[i])
-            .floor() as usize;
+        let n_neg_samples = ((n as f64 - state.epoch_of_next_negative_sample[i]) 
+            / state.epochs_per_negative_sample[i]).floor() as usize;
         
         for _ in 0..n_neg_samples {
             let k_neg = tau_rand_int(n_vertices, &mut rng_state);
             let other_start_neg = k_neg * dim;
             
             let dist_squared = {
-                let mut result: f32 = 0.0;
+                let mut result = 0.0;
                 for d in 0..dim {
                     let diff = state.head_embedding[current_start + d]
                         - state.tail_embedding[other_start_neg + d];
@@ -219,10 +218,10 @@ fn optimize_layout_step_in_place_inner(state: &mut OptimizerState) {
             };
             
             // Compute repulsive gradient
-            let mut grad_coeff: f32 = 0.0;
+            let mut grad_coeff = 0.0;
             if dist_squared > 0.0 {
                 grad_coeff = 2.0 * gamma * b;
-                grad_coeff /= (0.001 + dist_squared)
+                grad_coeff /= (0.001 + dist_squared) 
                     * (a * dist_squared.powf(b) + 1.0);
             } else if j == k_neg {
                 continue;
@@ -242,11 +241,11 @@ fn optimize_layout_step_in_place_inner(state: &mut OptimizerState) {
         }
         
         state.epoch_of_next_negative_sample[i] += 
-            n_neg_samples as f32 * state.epochs_per_negative_sample[i];
+            n_neg_samples as f64 * state.epochs_per_negative_sample[i];
     }
     
     // Update learning rate
-    state.alpha = state.initial_alpha * (1.0 - n as f32 / state.n_epochs as f32);
+    state.alpha = state.initial_alpha * (1.0 - n as f64 / state.n_epochs as f64);
     state.current_epoch += 1;
     state.rng_state = rng_state;
 }
@@ -258,7 +257,7 @@ fn optimize_layout_step_in_place_inner(state: &mut OptimizerState) {
 /// # Returns
 /// The updated embedding as a flat vector
 #[wasm_bindgen]
-pub fn optimize_layout_step(state: &mut OptimizerState) -> Vec<f32> {
+pub fn optimize_layout_step(state: &mut OptimizerState) -> Vec<f64> {
     optimize_layout_step_in_place_inner(state);
     state.head_embedding.clone()
 }
@@ -285,7 +284,7 @@ pub fn optimize_layout_step_in_place(state: &mut OptimizerState) {
 pub fn optimize_layout_batch(
     state: &mut OptimizerState,
     n_steps: usize,
-) -> Vec<f32> {
+) -> Vec<f64> {
     for _ in 0..n_steps {
         if state.current_epoch >= state.n_epochs {
             break;

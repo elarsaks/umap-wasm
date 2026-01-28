@@ -549,7 +549,7 @@ export function nnDescentWasmFlat(
 // ============================================================================
 
 export interface WasmOptimizerState {
-  head_embedding: Float32Array;
+  head_embedding: Float64Array;
   current_epoch: number;
   n_epochs: number;
   head_embedding_ptr(): number;
@@ -597,8 +597,8 @@ export function createOptimizerState(
   if (!wasmModule) throw new Error('WASM module not initialized');
   
   // Flatten embeddings to row-major format
-  const flatHeadEmbedding = new Float32Array(headEmbedding.length * dim);
-  const flatTailEmbedding = new Float32Array(tailEmbedding.length * dim);
+  const flatHeadEmbedding = new Float64Array(headEmbedding.length * dim);
+  const flatTailEmbedding = new Float64Array(tailEmbedding.length * dim);
   
   for (let i = 0; i < headEmbedding.length; i++) {
     for (let j = 0; j < dim; j++) {
@@ -615,8 +615,8 @@ export function createOptimizerState(
   // Create typed arrays for WASM
   const headArray = new Uint32Array(head);
   const tailArray = new Uint32Array(tail);
-  const epochsPerSampleArray = new Float32Array(epochsPerSample);
-  const epochsPerNegativeSampleArray = new Float32Array(epochsPerNegativeSample);
+  const epochsPerSampleArray = new Float64Array(epochsPerSample);
+  const epochsPerNegativeSampleArray = new Float64Array(epochsPerNegativeSample);
   
   return new wasmModule.OptimizerState(
     headArray,
@@ -645,7 +645,7 @@ export function createOptimizerState(
  */
 export function optimizeLayoutStepWasm(
   state: WasmOptimizerState
-): Float32Array {
+): Float64Array {
   if (!wasmModule) throw new Error('WASM module not initialized');
   
   return wasmModule.optimize_layout_step(state);
@@ -673,7 +673,7 @@ export function optimizeLayoutStepInPlaceWasm(
 export function optimizeLayoutBatchWasm(
   state: WasmOptimizerState,
   nSteps: number
-): Float32Array {
+): Float64Array {
   if (!wasmModule) throw new Error('WASM module not initialized');
   
   return wasmModule.optimize_layout_batch(state, nSteps);
@@ -694,7 +694,7 @@ export function optimizeLayoutBatchInPlaceWasm(
 /**
  * Get a zero-copy view of the optimizer embedding buffer.
  */
-export function getOptimizerEmbeddingView(state: WasmOptimizerState): Float32Array {
+export function getOptimizerEmbeddingView(state: WasmOptimizerState): Float64Array {
   if (!wasmModule) throw new Error('WASM module not initialized');
 
   const ptr = state.head_embedding_ptr();
@@ -706,5 +706,5 @@ export function getOptimizerEmbeddingView(state: WasmOptimizerState): Float32Arr
   if (!memory?.buffer) {
     throw new Error('WASM memory is not available');
   }
-  return new Float32Array(memory.buffer, ptr, len);
+  return new Float64Array(memory.buffer, ptr, len);
 }
