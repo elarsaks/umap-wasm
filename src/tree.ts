@@ -59,7 +59,7 @@
 
 import * as utils from './utils.js';
 import { RandomFn, Vector, Vectors } from './umap.js';
-import { isWasmAvailable, buildRpTreeWasm, buildRpTreeWasmFlat, searchFlatTreeWasm, wasmTreeToJs, WasmFlatTree } from './wasmBridge.js';
+import { isWasmAvailable, buildRpTreeWasmFlat, searchFlatTreeWasm, WasmFlatTree } from './wasmBridge.js';
 
 /**
  * Tree functionality for approximating nearest neighbors
@@ -76,25 +76,71 @@ interface RandomProjectionTreeNode {
 export class FlatTree {
   // Store a reference to WASM tree if available
   private wasmTree?: WasmFlatTree;
+  private hyperplanesFlat?: Float64Array;
+  private offsetsFlat?: Float64Array;
+  private childrenFlat?: Int32Array;
+  private indicesFlat?: Int32Array;
+  private dim?: number;
+  private nNodes?: number;
+  private nLeaves?: number;
+  private leafSize?: number;
 
   constructor(
-    public hyperplanes: number[][],
-    public offsets: number[],
-    public children: number[][],
-    public indices: number[][]
+    public hyperplanes: ArrayLike<number>[],
+    public offsets: ArrayLike<number>,
+    public children: ArrayLike<number>[],
+    public indices: ArrayLike<number>[]
   ) {}
 
   /**
    * Create a FlatTree from a WASM tree object
    */
   static fromWasm(wasmTree: WasmFlatTree): FlatTree {
-    const jsData = wasmTreeToJs(wasmTree);
-    const tree = new FlatTree(
-      jsData.hyperplanes,
-      jsData.offsets,
-      jsData.children,
-      jsData.indices
-    );
+    const tree = new FlatTree([], new Float64Array(0), [], []);
+    const childrenFlat = wasmTree.children();
+    let maxLeafIdx = -1;
+    for (let i = 0; i < childrenFlat.length; i++) {
+      const v = childrenFlat[i];
+      if (v <= 0) {
+        const leafIdx = -v;
+        if (leafIdx > maxLeafIdx) maxLeafIdx = leafIdx;
+      }
+    }
+    const nLeaves = maxLeafIdx + 1;
+    const indicesFlat = wasmTree.indices();
+    const leafSize = nLeaves > 0 ? Math.floor(indicesFlat.length / nLeaves) : 0;
+
+    tree.hyperplanesFlat = wasmTree.hyperplanes();
+    tree.offsetsFlat = wasmTree.offsets();
+    tree.childrenFlat = childrenFlat;
+    tree.indicesFlat = indicesFlat;
+    tree.dim = wasmTree.dim();
+    tree.nNodes = wasmTree.n_nodes();
+    tree.nLeaves = nLeaves;
+    tree.leafSize = leafSize;
+
+    // Expose view-based JS arrays for compatibility without copying.
+    const hyperplanes: ArrayLike<number>[] = new Array(tree.nNodes);
+    for (let i = 0; i < tree.nNodes; i++) {
+      const start = i * tree.dim;
+      hyperplanes[i] = tree.hyperplanesFlat.subarray(start, start + tree.dim);
+    }
+    const children: ArrayLike<number>[] = new Array(tree.nNodes);
+    for (let i = 0; i < tree.nNodes; i++) {
+      const start = i * 2;
+      children[i] = tree.childrenFlat.subarray(start, start + 2);
+    }
+    const indices: ArrayLike<number>[] = new Array(tree.nLeaves);
+    for (let i = 0; i < tree.nLeaves; i++) {
+      const start = i * tree.leafSize;
+      indices[i] = tree.indicesFlat.subarray(start, start + tree.leafSize);
+    }
+
+    tree.hyperplanes = hyperplanes;
+    tree.offsets = tree.offsetsFlat;
+    tree.children = children;
+    tree.indices = indices;
+
     tree.wasmTree = wasmTree;
     return tree;
   }
@@ -104,6 +150,39 @@ export class FlatTree {
    */
   getWasmTree(): WasmFlatTree | undefined {
     return this.wasmTree;
+  }
+
+  getFlatHyperplanes(): Float64Array | undefined {
+    return this.hyperplanesFlat;
+  }
+
+  getFlatOffsets(): Float64Array | undefined {
+    return this.offsetsFlat;
+  }
+
+  getFlatChildren(): Int32Array | undefined {
+    return this.childrenFlat;
+  }
+
+  getFlatLeafMeta():
+    | { indices: Int32Array; nLeaves: number; leafSize: number }
+    | undefined {
+    if (
+      this.indicesFlat &&
+      this.nLeaves !== undefined &&
+      this.leafSize !== undefined
+    ) {
+      return {
+        indices: this.indicesFlat,
+        nLeaves: this.nLeaves,
+        leafSize: this.leafSize,
+      };
+    }
+    return undefined;
+  }
+
+  getDim(): number | undefined {
+    return this.dim;
   }
 
   /**
@@ -406,7 +485,23 @@ export function makeLeafArray(rpForest: FlatTree[]): number[][] {
   if (rpForest.length > 0) {
     const output: number[][] = [];
     for (let tree of rpForest) {
-      output.push(...tree.indices!);
+      if (tree.indices.length > 0) {
+        output.push(...tree.indices);
+        continue;
+      }
+      const flatMeta = tree.getFlatLeafMeta();
+      if (!flatMeta) {
+        continue;
+      }
+      const { indices, nLeaves, leafSize } = flatMeta;
+      for (let leaf = 0; leaf < nLeaves; leaf++) {
+        const start = leaf * leafSize;
+        const row: number[] = new Array(leafSize);
+        for (let i = 0; i < leafSize; i++) {
+          row[i] = indices[start + i];
+        }
+        output.push(row);
+      }
     }
     return output;
   } else {
@@ -415,10 +510,56 @@ export function makeLeafArray(rpForest: FlatTree[]): number[][] {
 }
 
 /**
+ * Generate a flat leaf array for WASM NN-Descent without JS reshapes.
+ */
+export function makeLeafArrayFlat(
+  rpForest: FlatTree[]
+): { flatLeafArray: Int32Array; nLeaves: number; leafSize: number } {
+  if (rpForest.length === 0) {
+    return { flatLeafArray: new Int32Array([-1]), nLeaves: 1, leafSize: 1 };
+  }
+
+  let leafSize = -1;
+  let totalLeaves = 0;
+
+  for (const tree of rpForest) {
+    const flatMeta = tree.getFlatLeafMeta();
+    if (flatMeta) {
+      if (leafSize === -1) leafSize = flatMeta.leafSize;
+      totalLeaves += flatMeta.nLeaves;
+    } else {
+      if (leafSize === -1) leafSize = tree.indices[0]?.length ?? 0;
+      totalLeaves += tree.indices.length;
+    }
+  }
+
+  const flatLeafArray = new Int32Array(totalLeaves * leafSize);
+  let offset = 0;
+
+  for (const tree of rpForest) {
+    const flatMeta = tree.getFlatLeafMeta();
+    if (flatMeta) {
+      flatLeafArray.set(flatMeta.indices, offset);
+      offset += flatMeta.indices.length;
+      continue;
+    }
+    for (let i = 0; i < tree.indices.length; i++) {
+      const row = tree.indices[i];
+      for (let j = 0; j < leafSize; j++) {
+        flatLeafArray[offset + i * leafSize + j] = row[j];
+      }
+    }
+    offset += tree.indices.length * leafSize;
+  }
+
+  return { flatLeafArray, nLeaves: totalLeaves, leafSize };
+}
+
+/**
  * Selects the side of the tree to search during flat tree search.
  */
 function selectSide(
-  hyperplane: number[],
+  hyperplane: ArrayLike<number>,
   offset: number,
   point: Vector,
   random: RandomFn
@@ -451,6 +592,45 @@ export function searchFlatTree(
   if (wasmTree && isWasmAvailable()) {
     const seed = Math.floor(random() * 0xFFFFFFFF);
     return searchFlatTreeWasm(wasmTree, point, seed);
+  }
+
+  const childrenFlat = tree.getFlatChildren();
+  const hyperplanesFlat = tree.getFlatHyperplanes();
+  const offsetsFlat = tree.getFlatOffsets();
+  const dim = tree.getDim();
+  const flatMeta = tree.getFlatLeafMeta();
+  if (
+    childrenFlat &&
+    hyperplanesFlat &&
+    offsetsFlat &&
+    dim !== undefined &&
+    flatMeta
+  ) {
+    let node = 0;
+    while (childrenFlat[node * 2] > 0) {
+      const offset = offsetsFlat[node];
+      const base = node * dim;
+      const side = selectSide(
+        hyperplanesFlat.subarray(base, base + dim),
+        offset,
+        point,
+        random
+      );
+      if (side === 0) {
+        node = childrenFlat[node * 2];
+      } else {
+        node = childrenFlat[node * 2 + 1];
+      }
+    }
+
+    const leafIdx = -childrenFlat[node * 2];
+    const { indices, leafSize } = flatMeta;
+    const start = leafIdx * leafSize;
+    const result: number[] = new Array(leafSize);
+    for (let i = 0; i < leafSize; i++) {
+      result[i] = indices[start + i];
+    }
+    return result;
   }
 
   // JavaScript implementation when WASM tree is not available

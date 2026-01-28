@@ -31,9 +31,9 @@ export class SparseMatrix {
   readonly nCols: number = 0;
 
   constructor(
-    rows: number[],
-    cols: number[],
-    values: number[],
+    rows: ArrayLike<number>,
+    cols: ArrayLike<number>,
+    values: ArrayLike<number>,
     dims: number[]
   ) {
     if (rows.length !== cols.length || rows.length !== values.length) {

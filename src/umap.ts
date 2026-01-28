@@ -646,6 +646,57 @@ export class UMAP {
 
     this.rpForest = tree.makeForest(X, nNeighbors, nTrees, this.random, this.useWasmTree);
 
+    if (this.useWasmNNDescent && wasmBridge.isWasmAvailable()) {
+      const nSamples = X.length;
+      const dim = X[0].length;
+      const flatData = new Float64Array(nSamples * dim);
+      for (let i = 0; i < nSamples; i++) {
+        for (let j = 0; j < dim; j++) {
+          flatData[i * dim + j] = X[i][j];
+        }
+      }
+
+      const { flatLeafArray, nLeaves, leafSize } = tree.makeLeafArrayFlat(
+        this.rpForest
+      );
+
+      const distanceMetric = distanceFn.name === 'cosine' ? 'cosine' : 'euclidean';
+      const seed = Math.floor(this.random() * 0xFFFFFFFF);
+
+      const result = wasmBridge.nnDescentWasmFlat(
+        flatData,
+        nSamples,
+        dim,
+        flatLeafArray,
+        nLeaves,
+        leafSize,
+        nNeighbors,
+        nIters,
+        50,
+        0.001,
+        0.5,
+        true,
+        distanceMetric,
+        seed
+      );
+
+      const indices: number[][] = [];
+      const weights: number[][] = [];
+      const offset1 = nSamples * nNeighbors;
+
+      for (let i = 0; i < nSamples; i++) {
+        const rowIndices: number[] = [];
+        const rowWeights: number[] = [];
+        for (let j = 0; j < nNeighbors; j++) {
+          rowIndices.push(result[i * nNeighbors + j]);
+          rowWeights.push(result[offset1 + i * nNeighbors + j]);
+        }
+        indices.push(rowIndices);
+        weights.push(rowWeights);
+      }
+      return { knnIndices: indices, knnDistances: weights };
+    }
+
     const leafArray = tree.makeLeafArray(this.rpForest);
     const { indices, weights } = metricNNDescent(
       X,
@@ -699,10 +750,8 @@ export class UMAP {
       const resultWasm = wasmBridge.sparseAddWasm(b, c);
 
       // Convert back to JS SparseMatrix for downstream code that expects it
-      const entries = wasmBridge.wasmSparseMatrixGetAll(resultWasm);
-      const jsRows = entries.map(e => e.row);
-      const jsCols = entries.map(e => e.col);
-      const jsVals = entries.map(e => e.value);
+      const { rows: jsRows, cols: jsCols, values: jsVals } =
+        wasmBridge.wasmSparseMatrixGetAllTyped(resultWasm);
       return new matrix.SparseMatrix(jsRows, jsCols, jsVals, size);
     }
 
@@ -721,10 +770,8 @@ export class UMAP {
       const resultWasm = wasmBridge.sparseAddWasm(b, c);
 
       // Convert back to JS SparseMatrix for downstream code that expects it
-      const entries = wasmBridge.wasmSparseMatrixGetAll(resultWasm);
-      const jsRows = entries.map(e => e.row);
-      const jsCols = entries.map(e => e.col);
-      const jsVals = entries.map(e => e.value);
+      const { rows: jsRows, cols: jsCols, values: jsVals } =
+        wasmBridge.wasmSparseMatrixGetAllTyped(resultWasm);
       return new matrix.SparseMatrix(jsRows, jsCols, jsVals, size);
     }
 
