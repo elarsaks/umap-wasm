@@ -1,6 +1,6 @@
 {
   "name": "@elarsaks/umap-wasm",
-  "version": "0.4.3",
+  "version": "0.4.4",
   "description": "JavaScript implementation of UMAP",
   "author": {
     "name": "Elar Saks",
@@ -36,7 +36,7 @@
     "preview": "npx serve . -p 4173",
     "bundle": "rm -rf lib && webpack --config ./webpack/lib.config.mjs && webpack --config ./webpack/lib.min.config.mjs",
     "build": "rm -rf dist && tsc && yarn bundle",
-    "build:wasm": "cd wasm && wasm-pack build --target web --out-dir pkg/web && wasm-pack build --target nodejs --out-dir pkg/node && rm -f pkg/web/.gitignore pkg/node/.gitignore"
+    "build:wasm": "cd wasm && RUSTFLAGS='-C target-feature=+simd128' wasm-pack build --target web --out-dir pkg/web --release && wasm-opt -O4 -o pkg/web/umap_wasm_core_bg.wasm pkg/web/umap_wasm_core_bg.wasm && RUSTFLAGS='-C target-feature=+simd128' wasm-pack build --target nodejs --out-dir pkg/node --release && wasm-opt -O4 -o pkg/node/umap_wasm_core_bg.wasm pkg/node/umap_wasm_core_bg.wasm && rm -f pkg/web/.gitignore pkg/node/.gitignore"
   },
   "devDependencies": {
     "@playwright/test": "^1.57.0",
