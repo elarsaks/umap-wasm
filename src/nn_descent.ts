@@ -99,9 +99,31 @@ export function makeNNDescent(
       // Generate a seed from the random function
       const seed = Math.floor(random() * 0xFFFFFFFF);
       
-      const result = wasmBridge.nnDescentWasm(
-        data,
-        leafArray,
+      const nSamples = data.length;
+      const dim = data[0].length;
+      const flatData = new Float64Array(nSamples * dim);
+      for (let i = 0; i < nSamples; i++) {
+        for (let j = 0; j < dim; j++) {
+          flatData[i * dim + j] = data[i][j];
+        }
+      }
+
+      const nLeaves = leafArray.length;
+      const leafSize = nLeaves > 0 ? leafArray[0].length : 0;
+      const flatLeafArray = new Int32Array(nLeaves * leafSize);
+      for (let i = 0; i < nLeaves; i++) {
+        for (let j = 0; j < leafSize; j++) {
+          flatLeafArray[i * leafSize + j] = leafArray[i][j];
+        }
+      }
+
+      const result = wasmBridge.nnDescentWasmFlat(
+        flatData,
+        nSamples,
+        dim,
+        flatLeafArray,
+        nLeaves,
+        leafSize,
         nNeighbors,
         nIters,
         maxCandidates,
@@ -112,9 +134,24 @@ export function makeNNDescent(
         seed
       );
       
+      const indices: number[][] = [];
+      const distances: number[][] = [];
+      const offset1 = nSamples * nNeighbors;
+
+      for (let i = 0; i < nSamples; i++) {
+        const rowIndices: number[] = [];
+        const rowDistances: number[] = [];
+        for (let j = 0; j < nNeighbors; j++) {
+          rowIndices.push(result[i * nNeighbors + j]);
+          rowDistances.push(result[offset1 + i * nNeighbors + j]);
+        }
+        indices.push(rowIndices);
+        distances.push(rowDistances);
+      }
+
       return {
-        indices: result[0],
-        weights: result[1],
+        indices,
+        weights: distances,
       };
     }
     
