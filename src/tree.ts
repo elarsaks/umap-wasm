@@ -59,7 +59,7 @@
 
 import * as utils from './utils.js';
 import { RandomFn, Vector, Vectors } from './umap.js';
-import { isWasmAvailable, buildRpTreeWasm, searchFlatTreeWasm, wasmTreeToJs, WasmFlatTree } from './wasmBridge.js';
+import { isWasmAvailable, buildRpTreeWasm, buildRpTreeWasmFlat, searchFlatTreeWasm, wasmTreeToJs, WasmFlatTree } from './wasmBridge.js';
 
 /**
  * Tree functionality for approximating nearest neighbors
@@ -158,12 +158,18 @@ function makeForestWasm(
   const nSamples = data.length;
   const dim = data[0].length;
   const forest: FlatTree[] = [];
+  const flatData = new Float64Array(nSamples * dim);
+  for (let i = 0; i < nSamples; i++) {
+    for (let j = 0; j < dim; j++) {
+      flatData[i * dim + j] = data[i][j];
+    }
+  }
 
   for (let i = 0; i < nTrees; i++) {
     // Generate a seed from the random function
     const seed = Math.floor(random() * 0xFFFFFFFF);
     
-    const wasmTree = buildRpTreeWasm(data, nSamples, dim, leafSize, seed);
+    const wasmTree = buildRpTreeWasmFlat(flatData, nSamples, dim, leafSize, seed);
     forest.push(FlatTree.fromWasm(wasmTree));
   }
 

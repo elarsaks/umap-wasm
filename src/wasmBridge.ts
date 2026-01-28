@@ -106,7 +106,22 @@ export function buildRpTreeWasm(
       flatData[i * dim + j] = data[i][j];
     }
   }
-  
+
+  return buildRpTreeWasmFlat(flatData, nSamples, dim, leafSize, seed);
+}
+
+/**
+ * Build a random projection tree using WASM with flat, row-major data.
+ */
+export function buildRpTreeWasmFlat(
+  flatData: Float64Array,
+  nSamples: number,
+  dim: number,
+  leafSize: number,
+  seed: number
+): WasmFlatTree {
+  if (!wasmModule) throw new Error('WASM module not initialized');
+
   return wasmModule.build_rp_tree(flatData, nSamples, dim, leafSize, BigInt(seed));
 }
 
@@ -416,8 +431,7 @@ export function nnDescentWasm(
     }
   }
   
-  // Call WASM function
-  const result = wasmModule.nn_descent(
+  const result = nnDescentWasmFlat(
     flatData,
     nSamples,
     dim,
@@ -431,7 +445,7 @@ export function nnDescentWasm(
     rho,
     rpTreeInit,
     distanceMetric,
-    BigInt(seed)
+    seed
   );
   
   // Unflatten result: [indices, distances, flags]
@@ -459,6 +473,45 @@ export function nnDescentWasm(
   }
   
   return [indices, distances, flags];
+}
+
+/**
+ * Run nearest neighbor descent using WASM with flat data and leaf arrays.
+ */
+export function nnDescentWasmFlat(
+  flatData: Float64Array,
+  nSamples: number,
+  dim: number,
+  flatLeafArray: Int32Array,
+  nLeaves: number,
+  leafSize: number,
+  nNeighbors: number,
+  nIters: number = 10,
+  maxCandidates: number = 50,
+  delta: number = 0.001,
+  rho: number = 0.5,
+  rpTreeInit: boolean = true,
+  distanceMetric: string = 'euclidean',
+  seed: number = 42
+): number[] {
+  if (!wasmModule) throw new Error('WASM module not initialized');
+
+  return wasmModule.nn_descent(
+    flatData,
+    nSamples,
+    dim,
+    flatLeafArray,
+    nLeaves,
+    leafSize,
+    nNeighbors,
+    nIters,
+    maxCandidates,
+    delta,
+    rho,
+    rpTreeInit,
+    distanceMetric,
+    BigInt(seed)
+  );
 }
 
 // ============================================================================
