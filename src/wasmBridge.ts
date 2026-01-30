@@ -2,7 +2,94 @@ let wasmReady: Promise<any> | null = null;
 let wasmModule: any = null;
 let wasmExports: any = null;
 
-export async function initWasm() {
+export type WasmLoadPhase = 'download' | 'instantiate' | 'done';
+
+export interface WasmLoadProgress {
+  loaded: number;
+  total: number | null;
+  percent: number | null;
+  phase: WasmLoadPhase;
+}
+
+export interface InitWasmOptions {
+  onProgress?: (progress: WasmLoadProgress) => void;
+  wasmUrl?: string;
+}
+
+const reportProgress = (
+  options: InitWasmOptions | undefined,
+  progress: WasmLoadProgress
+) => {
+  if (!options?.onProgress) return;
+  try {
+    options.onProgress(progress);
+  } catch {
+    // ignore progress callback errors
+  }
+};
+
+const inferWasmUrl = (jsUrl: string | null, fallbackUrl: string | null) => {
+  const source = jsUrl || fallbackUrl;
+  if (!source) return null;
+  if (source.endsWith('umap_wasm_core.js')) {
+    return source.replace('umap_wasm_core.js', 'umap_wasm_core_bg.wasm');
+  }
+  return source.replace(/\.js(\?.*)?$/, '_bg.wasm$1');
+};
+
+const fetchWasmWithProgress = async (
+  wasmUrl: string,
+  options: InitWasmOptions | undefined
+) => {
+  const res = await fetch(wasmUrl);
+  if (!res.ok) {
+    throw new Error(`Failed to fetch WASM (${res.status} ${res.statusText})`);
+  }
+
+  const totalHeader = res.headers.get('Content-Length');
+  const total = totalHeader ? Number(totalHeader) : null;
+
+  if (!res.body || !('getReader' in res.body)) {
+    const buffer = await res.arrayBuffer();
+    reportProgress(options, {
+      phase: 'download',
+      loaded: buffer.byteLength,
+      total,
+      percent: total ? Math.round((buffer.byteLength / total) * 100) : null,
+    });
+    return buffer;
+  }
+
+  const reader = res.body.getReader();
+  const chunks: Uint8Array[] = [];
+  let loaded = 0;
+
+  while (true) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    if (value) {
+      chunks.push(value);
+      loaded += value.byteLength;
+      reportProgress(options, {
+        phase: 'download',
+        loaded,
+        total,
+        percent: total ? Math.round((loaded / total) * 100) : null,
+      });
+    }
+  }
+
+  const buffer = new Uint8Array(loaded);
+  let offset = 0;
+  for (const chunk of chunks) {
+    buffer.set(chunk, offset);
+    offset += chunk.byteLength;
+  }
+
+  return buffer.buffer;
+};
+
+export async function initWasm(options?: InitWasmOptions) {
   if (wasmReady) return wasmReady;
   
   wasmReady = (async () => {
@@ -11,6 +98,7 @@ export async function initWasm() {
       const isNode = typeof process !== 'undefined' && process.versions != null && process.versions.node != null;
       
       let mod: any;
+      let wasmJsUrl: string | null = null;
       if (isNode) {
         // Node.js: use native import
         // We construct the path as a variable to prevent webpack from analyzing it
@@ -24,15 +112,47 @@ export async function initWasm() {
         } catch (e) {
           // Fall back to absolute URL for standalone usage
           const origin = typeof window !== 'undefined' && window.location ? window.location.origin : '';
-          const wasmPath = `${origin}/wasm/pkg/web/umap_wasm_core.js`;
-          mod = await new Function('p', 'return import(p)')(wasmPath);
+          wasmJsUrl = `${origin}/wasm/pkg/web/umap_wasm_core.js`;
+          mod = await new Function('p', 'return import(p)')(wasmJsUrl);
         }
       }
       
       // wasm-pack exports a default init function that must be called
       // to load and instantiate the actual .wasm binary
       if (typeof mod.default === 'function') {
-        wasmExports = await mod.default();
+        const wasmUrl = options?.wasmUrl || inferWasmUrl(wasmJsUrl, null);
+        if (!isNode && options?.onProgress && wasmUrl) {
+          const buffer = await fetchWasmWithProgress(wasmUrl, options);
+          reportProgress(options, {
+            phase: 'instantiate',
+            loaded: buffer.byteLength,
+            total: buffer.byteLength,
+            percent: 100,
+          });
+          wasmExports = await mod.default(buffer);
+          reportProgress(options, {
+            phase: 'done',
+            loaded: buffer.byteLength,
+            total: buffer.byteLength,
+            percent: 100,
+          });
+        } else if (!isNode && options?.onProgress) {
+          reportProgress(options, {
+            phase: 'instantiate',
+            loaded: 0,
+            total: null,
+            percent: null,
+          });
+          wasmExports = await mod.default();
+          reportProgress(options, {
+            phase: 'done',
+            loaded: 0,
+            total: null,
+            percent: 100,
+          });
+        } else {
+          wasmExports = await mod.default();
+        }
       }
       
       wasmModule = mod;

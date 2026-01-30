@@ -44,6 +44,22 @@ const umap = new UMAP({
 const embedding = umap.fit(data);
 ```
 
+### WASM loading with progress
+
+If you want a progress bar while the WASM module downloads, pass a `wasmUrl`
+and `onProgress` callback:
+
+```typescript
+import { initWasm } from 'umap-wasm';
+
+await initWasm({
+  wasmUrl: '/wasm/pkg/web/umap_wasm_core_bg.wasm',
+  onProgress: ({ percent, phase }) => {
+    console.log(`WASM ${phase}: ${percent ?? 0}%`);
+  }
+});
+```
+
 ### Asynchronous Fitting with Progress Tracking
 
 ```javascript
