@@ -18,4 +18,10 @@
  */
 
 export { UMAP, UMAPParameters } from './umap.js';
-export { initWasm, isWasmAvailable } from './wasmBridge.js';
+export {
+  initWasm,
+  isWasmAvailable,
+  type InitWasmOptions,
+  type WasmLoadProgress,
+  type WasmLoadPhase,
+} from './wasmBridge.js';
