@@ -39,6 +39,22 @@ The WASM loader will look for files at `/wasm/web/umap_wasm_core.js` and `/wasm/
 
 Node.js environments don't require this step.
 
+## Reproducible WASM build (short note)
+
+If you need to rebuild the WASM artifacts locally, use the locked toolchain and skip post-build optimization to avoid runtime issues with externref tables. Recommended minimal steps:
+
+- Ensure the repository `rust-toolchain.toml` is respected (Rust 1.83.0).
+- Use `wasm-pack 0.13.1` and Node.js `22.22.0`.
+- Build with `--no-opt` to skip `wasm-opt` (example):
+
+```bash
+cd wasm
+RUSTFLAGS='-C target-feature=+simd128' wasm-pack build --no-opt --target web --out-dir pkg/web --release
+RUSTFLAGS='-C target-feature=+simd128' wasm-pack build --no-opt --target nodejs --out-dir pkg/node --release
+```
+
+Skipping `wasm-opt` avoids a post-processing pass that may break WebAssembly externref table handling; it yields larger but correct binaries. Only publish optimized binaries after ensuring they pass the full test-suite.
+
 ## 🚀 Usage
 
 ### Basic Usage (Synchronous)
