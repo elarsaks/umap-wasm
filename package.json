@@ -1,6 +1,6 @@
 {
   "name": "@elarsaks/umap-wasm",
-  "version": "0.9.0",
+  "version": "0.9.1",
   "description": "WebAssembly-Accelerated UMAP for JavaScript - High-performance dimension reduction for browser and Node.js",
   "keywords": [
     "umap",
@@ -51,7 +51,7 @@
     "preview": "npx serve . -p 4173",
     "bundle": "rm -rf lib && webpack --config ./webpack/lib.config.mjs && webpack --config ./webpack/lib.min.config.mjs",
     "build": "rm -rf dist && tsc && yarn bundle",
-    "build:wasm": "cd wasm && RUSTFLAGS='-C target-feature=+simd128' wasm-pack build --target web --out-dir pkg/web --release && RUSTFLAGS='-C target-feature=+simd128' wasm-pack build --target nodejs --out-dir pkg/node --release && rm -f pkg/web/.gitignore pkg/node/.gitignore"
+    "build:wasm": "cd wasm && RUSTFLAGS='-C target-feature=+simd128' wasm-pack build --no-opt --target web --out-dir pkg/web --release && RUSTFLAGS='-C target-feature=+simd128' wasm-pack build --no-opt --target nodejs --out-dir pkg/node --release && rm -f pkg/web/.gitignore pkg/node/.gitignore"
   },
   "devDependencies": {
     "@playwright/test": "^1.57.0",
