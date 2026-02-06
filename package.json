@@ -1,6 +1,6 @@
 {
   "name": "@elarsaks/umap-wasm",
-  "version": "0.9.0",
+  "version": "0.9.1",
   "description": "WebAssembly-Accelerated UMAP for JavaScript - High-performance dimension reduction for browser and Node.js",
   "keywords": [
     "umap",
