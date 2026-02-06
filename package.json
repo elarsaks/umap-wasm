@@ -1,15 +1,30 @@
 {
   "name": "@elarsaks/umap-wasm",
-  "version": "0.5.1",
-  "description": "JavaScript implementation of UMAP",
+  "version": "0.9.0",
+  "description": "WebAssembly-Accelerated UMAP for JavaScript - High-performance dimension reduction for browser and Node.js",
+  "keywords": [
+    "umap",
+    "wasm",
+    "webassembly",
+    "dimension-reduction",
+    "machine-learning",
+    "visualization",
+    "manifold-learning",
+    "javascript",
+    "typescript",
+    "rust"
+  ],
   "author": {
     "name": "Elar Saks",
     "email": "elarsaks@gmail.com"
   },
-  "license": "MIT",
+  "license": "Apache-2.0",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/elarsaks/umap-wasm.git"
+  },
+  "bugs": {
+    "url": "https://github.com/elarsaks/umap-wasm/issues"
   },
   "main": "lib/umap-js.js",
   "module": "dist/index.js",
@@ -36,7 +51,7 @@
     "preview": "npx serve . -p 4173",
     "bundle": "rm -rf lib && webpack --config ./webpack/lib.config.mjs && webpack --config ./webpack/lib.min.config.mjs",
     "build": "rm -rf dist && tsc && yarn bundle",
-    "build:wasm": "cd wasm && RUSTFLAGS='-C target-feature=+simd128' wasm-pack build --target web --out-dir pkg/web --release && wasm-opt -O4 -o pkg/web/umap_wasm_core_bg.wasm pkg/web/umap_wasm_core_bg.wasm && RUSTFLAGS='-C target-feature=+simd128' wasm-pack build --target nodejs --out-dir pkg/node --release && wasm-opt -O4 -o pkg/node/umap_wasm_core_bg.wasm pkg/node/umap_wasm_core_bg.wasm && rm -f pkg/web/.gitignore pkg/node/.gitignore"
+    "build:wasm": "cd wasm && RUSTFLAGS='-C target-feature=+simd128' wasm-pack build --target web --out-dir pkg/web --release && RUSTFLAGS='-C target-feature=+simd128' wasm-pack build --target nodejs --out-dir pkg/node --release && rm -f pkg/web/.gitignore pkg/node/.gitignore"
   },
   "devDependencies": {
     "@playwright/test": "^1.57.0",

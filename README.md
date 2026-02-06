@@ -1,8 +1,12 @@
-# 🚧 UNDER DEVELOPMENT 🚧
-
 # UMAP-WASM: WebAssembly-Accelerated UMAP for JavaScript
 
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](LICENSE)
+
+> **⚠️ Thesis Project Notice**: This library was developed as part of a master's thesis research project and is **not actively maintained**. While functional and tested, it is provided as-is for academic and experimental purposes. 
+
+![Performance Comparison](docs/runtime_by_machine.png)
+
+*Performance comparison across different machines. The baseline represents the pure JavaScript implementation (umap-js), while UMAP-WASM shows the WebAssembly-accelerated version. Note: The MacBook is approximately 5 years newer and more performant hardware compared to the Linux machine.*
 
 A high-performance implementation of Uniform Manifold Approximation and Projection (UMAP) for JavaScript environments, featuring selective WebAssembly acceleration for compute-intensive operations.
 
@@ -16,17 +20,24 @@ yarn add umap-wasm
 
 ### Make the WASM artifacts available in the browser
 
-For browser builds the loader expects the compiled WASM bundle at `/wasm/pkg/web/umap_wasm_core.js` (and the accompanying `.wasm` binary) to be served as static assets. If your bundler does not automatically copy files from `node_modules`, add a `postinstall` script that copies only the web build into your public/static directory:
+For browser usage, WASM files must be served as static assets. The package includes pre-built WASM artifacts in `wasm/pkg/web/`. If your bundler doesn't automatically copy files from `node_modules`, add a postinstall script:
 
 ```json
 {
   "scripts": {
-    "postinstall": "mkdir -p public/wasm/pkg/web && cp -r node_modules/@elarsaks/umap-wasm/wasm/pkg/web/* public/wasm/pkg/web/"
+    "postinstall": "mkdir -p public/wasm && cp -r node_modules/@elarsaks/umap-wasm/wasm/pkg/web public/wasm/"
   }
 }
 ```
 
-Adjust the destination (`public/wasm/pkg`) to match your framework's static assets folder (e.g., `static/` for SvelteKit, `public/` for Vite/Next). Node.js-only usage does not need this step.
+Adjust the destination to match your framework:
+- Vite/React: `public/wasm/`
+- Next.js: `public/wasm/`
+- SvelteKit: `static/wasm/`
+
+The WASM loader will look for files at `/wasm/web/umap_wasm_core.js` and `/wasm/web/umap_wasm_core_bg.wasm`.
+
+Node.js environments don't require this step.
 
 ## 🚀 Usage
 
@@ -46,14 +57,13 @@ const embedding = umap.fit(data);
 
 ### WASM loading with progress
 
-If you want a progress bar while the WASM module downloads, pass a `wasmUrl`
-and `onProgress` callback:
+For progress tracking during WASM module loading:
 
 ```typescript
 import { initWasm } from 'umap-wasm';
 
 await initWasm({
-  wasmUrl: '/wasm/pkg/web/umap_wasm_core_bg.wasm',
+  wasmUrl: '/wasm/web/umap_wasm_core_bg.wasm',
   onProgress: ({ percent, phase }) => {
     console.log(`WASM ${phase}: ${percent ?? 0}%`);
   }
@@ -131,22 +141,33 @@ The UMAP constructor accepts a `UMAPParameters` object with the following option
 | `spread` | `number` | `1.0` | Effective scale of embedded points |
 | `random` | `() => number` | `Math.random` | PRNG for reproducibility |
 | `distanceFn` | `DistanceFn` | `euclidean` | Distance metric for input space |
-| `useWasmDistance` | `boolean` | `false` | Whether to use Rust/WASM distance functions when available |
-| `useWasmNNDescent` | `boolean` | `false` | Whether to use Rust/WASM NN-Descent implementation when available |
-| `useWasmTree` | `boolean` | `false` | Whether to use Rust/WASM random projection tree construction when available |
-| `useWasmMatrix` | `boolean` | `false` | Whether to use Rust/WASM sparse matrix operations when available |
-| `useWasmOptimizer` | `boolean` | `false` | Whether to use Rust/WASM gradient descent optimizer when available |
+| `useWasmDistance` | `boolean` | `false` | Use Rust/WASM distance functions (Euclidean, cosine, etc.) |
+| `useWasmNNDescent` | `boolean` | `false` | Use Rust/WASM NN-Descent for nearest neighbor graph refinement |
+| `useWasmTree` | `boolean` | `false` | Use Rust/WASM random projection trees for neighbor search |
+| `useWasmMatrix` | `boolean` | `false` | Use Rust/WASM sparse matrix operations |
+| `useWasmOptimizer` | `boolean` | `false` | Use Rust/WASM gradient descent optimizer |
 
+**WASM Performance Note**: Enable WASM features for improved performance on large datasets (1000+ points). For small datasets, JavaScript may be faster due to overhead.
 
-### Example with WASM Parameters
+### Example Configuration
 
 ```typescript
 import { UMAP } from 'umap-wasm';
 
+// Basic 2D embedding
 const umap = new UMAP({
-  nComponents: 3, // 3D embedding
+  nComponents: 2,
+  nNeighbors: 15,
+  minDist: 0.1
+});
+
+// 3D embedding with WASM acceleration
+const umapWasm = new UMAP({
+  nComponents: 3,
+  nNeighbors: 30,
   useWasmDistance: true,
-  useWasmNNDescent: true
+  useWasmNNDescent: true,
+  useWasmOptimizer: true
 });
 ```
 --- 
@@ -312,6 +333,8 @@ yarn test:ui
 yarn test:coverage
 ```
 
+**Note**: Some unit tests depend on the execution environment (CPU architecture, floating-point precision, random number generation). Test results may vary slightly across different machines and may fail in environments different from the development setup.
+
 ## 📊 Benchmarking
 
 Performance benchmarks are available in the companion `umap-bench` repository, which includes:
@@ -366,4 +389,4 @@ Tampere University of Applied Sciences
 
 ---
 
-*This README is maintained as part of academic research. Last updated: January 2026*
+*This README is maintained as part of academic research. Last updated: February 2026*
